@@ -106,6 +106,17 @@ frontend/
 | `MAX_FILE_SIZE_MB` | 1 | Max upload size |
 | `CORS_ORIGINS` | * | Allowed origins |
 
+## Challenges
 
+- **sql.js BLOBs** — retrieving binary data needed manual `stmt.get()` + `Buffer.from()` instead of `getAsObject()`
+- **Pluggable DB** — inverted repo/service/controller into factory functions so users inject their own database adapter
+- **Multer timing** — `req.body` undefined in diskStorage destination; switched to memoryStorage + manual write
+- **Two preview flows** — pre-upload (`URL.createObjectURL`) vs post-upload (DB download); PDF blob URLs unreliable in browsers
+- **Scoped CSS** — all `doc-*` prefixed to avoid clashing with host site styles
+- **sql.js persistence** — in-memory DB requires explicit `saveDatabase()` after every write or data is lost on crash
+
+Full details in `DOCUMENTATION.doc`.
+
+---
 
 *Add screenshots and video demo link here.*

@@ -120,13 +120,24 @@ frontend/
 <hr>
 
 <h2>Challenges Faced</h2>
-<ul>
-<li><strong>No Python on machine:</strong> Native SQLite modules (better-sqlite3) need Python for compilation. Switched to sql.js — a pure JavaScript SQLite that works without any build tools.</li>
-<li><strong>Restricted PowerShell:</strong> Execution policy blocked npm scripts. Had to call npm via full path (<code>C:\Program Files\nodejs\npm.cmd</code>) instead of just <code>npm</code>.</li>
-<li><strong>Windows curl + JSON:</strong> PowerShell's single quotes don't parse properly with curl's <code>-d</code> flag. Had to write JSON to a temp file and use <code>-d @file</code> instead.</li>
-<li><strong>Multer body timing:</strong> Body fields weren't available in Multer's diskStorage destination callback. Switched to memoryStorage + manual write after validation.</li>
-<li><strong>Google Fonts in production build:</strong> Vite doesn't process external CSS imports from node_modules. Used system font stack as fallback.</li>
-</ul>
+
+<h3>1. BLOB Storage with sql.js — Binary Data Quirks</h3>
+<p>sql.js is a JavaScript port of SQLite compiled via Emscripten. Storing files as BLOBs worked for <code>INSERT</code>, but retrieving them was tricky. The standard <code>stmt.getAsObject()</code> method returned the binary data as a typed array that was incompatible with the Express <code>res.send()</code> response. I had to use <code>stmt.get()</code> with <code>stmt.getColumnNames()</code> manually and wrap the result in <code>Buffer.from()</code> before sending. One wrong type conversion and the downloaded file would be corrupt despite the correct byte count.</p>
+
+<h3>2. Pluggable Database Architecture — Repo as a Dependency</h3>
+<p>The original design had the repository directly importing the SQLite connection. To make it work with any database (PostgreSQL, MySQL, etc.), I had to invert the entire dependency chain. The repository became a factory function returned from <code>createSqliteRepository()</code>, the service accepts the repository as a parameter via <code>createDocumentService(repo)</code>, and the module factory wires everything together. Getting the dependency injection order right without a DI framework required careful sequencing in <code>index.js</code>.</p>
+
+<h3>3. Multer Body Field Timing</h3>
+<p>Multer's diskStorage <code>destination</code> callback fires during file streaming, before the non-file form fields are fully parsed. So <code>req.body.applicant_id</code> was <code>undefined</code> when trying to create the folder path. Switching to memoryStorage and manually writing the file <em>after</em> multer finishes meant the body fields were available, but required extra code to construct the path and write the buffer to disk (or DB in our case) manually.</p>
+
+<h3>4. Two Preview Flows — Local vs Server</h3>
+<p>The app has two completely different preview mechanisms. Before upload: uses <code>URL.createObjectURL(file)</code> to create a local blob URL from the File object. After upload: fetches the file from the database via <code>GET /api/documents/:id/download</code>. Both needed the same modal component but with different data sources. Had to carefully manage object URL lifecycle — <code>revokeObjectURL</code> on modal close to prevent memory leaks, while server URLs should cache. PDFs added another layer: browsers can't reliably preview local PDF blob URLs, so the pre-upload modal shows a message while the post-upload modal opens a new tab.</p>
+
+<h3>5. Scoped CSS for Embeddability</h3>
+<p>Every CSS class is prefixed with <code>doc-*</code> to prevent style collisions when the component is embedded in existing portals. This seems simple but means every new UI element needs a prefixed class name — no room for utility frameworks like Tailwind. The modal overlay (<code>z-index: 1000</code>) had to be high enough to sit above any existing site chrome. Also, the Google Fonts import via <code>@import url(...)</code> won't work in Vite production builds when imported from a CDN, so the system font stack is the fallback.</p>
+
+<h3>6. sql.js Persistence — Manual Save on Every Write</h3>
+<p>Unlike a real SQLite driver, sql.js operates entirely in memory. The database file is only updated when you explicitly call <code>db.export()</code> and write the buffer to disk. If the server crashes between a write and a save, that data is lost. Every repository method (<code>insertDocument</code>, <code>deleteDocumentById</code>, <code>updateDocumentStatus</code>) must call <code>saveDatabase()</code> after execution. Forgetting one would cause silent data loss that only appears on server restart. This is a fundamental design constraint of using a WASM-compiled database.</p>
 
 <hr>
 
