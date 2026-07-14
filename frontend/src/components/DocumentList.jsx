@@ -20,6 +20,8 @@ const STATUS_CLASSES = {
   rejected: 'doc-status-rejected',
 };
 
+const PREVIEW_TYPES = ['image/png', 'image/jpeg'];
+
 function Spinner() {
   return (
     <div className="doc-spinner">
@@ -40,6 +42,52 @@ function EmptyIcon() {
   );
 }
 
+function PreviewModal({ doc, downloadUrl, onClose }) {
+  const [loaded, setLoaded] = useState(false);
+  const isImage = PREVIEW_TYPES.includes(doc.mime_type);
+
+  return (
+    <div className="doc-modal-overlay" onClick={onClose}>
+      <div className="doc-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="doc-modal-header">
+          <span className="doc-modal-title">{doc.file_name}</span>
+          <button className="doc-modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="doc-modal-body">
+          {isImage ? (
+            <div className="doc-preview-image-wrap">
+              {!loaded && <div className="doc-spinner"><div className="doc-spinner-ring" /><span>Loading preview...</span></div>}
+              <img
+                src={downloadUrl}
+                alt={doc.file_name}
+                onLoad={() => setLoaded(true)}
+                className={`doc-preview-image ${loaded ? 'doc-preview-loaded' : ''}`}
+              />
+            </div>
+          ) : (
+            <div className="doc-preview-pdf">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <p>PDF preview not available inline.</p>
+              <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="doc-btn doc-btn-primary" style={{ width: 'auto' }}>
+                Open in new tab
+              </a>
+            </div>
+          )}
+        </div>
+        <div className="doc-modal-footer">
+          <span className="doc-modal-meta">{doc.document_type} &middot; {formatSize(doc.file_size)} &middot; {formatDate(doc.uploaded_at)}</span>
+          <a href={downloadUrl} className="doc-btn doc-btn-sm doc-btn-download" download>Download</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DocumentList({
   documents = [],
   loading = false,
@@ -51,6 +99,7 @@ export default function DocumentList({
   className = '',
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   const filtered = statusFilter === 'all'
     ? documents
@@ -109,11 +158,16 @@ export default function DocumentList({
               {filtered.map((doc) => (
                 <tr key={doc.id}>
                   <td><span className="doc-badge doc-type-badge">{doc.document_type}</span></td>
-                  <td>{doc.file_name}</td>
+                  <td>
+                    <button className="doc-file-link" onClick={() => setPreviewDoc(doc)} title="Click to preview">
+                      {doc.file_name}
+                    </button>
+                  </td>
                   <td>{formatSize(doc.file_size)}</td>
                   <td>{formatDate(doc.uploaded_at)}</td>
                   <td><span className={`doc-badge ${STATUS_CLASSES[doc.status] || 'doc-status-pending'}`}>{doc.status}</span></td>
-                  <td>
+                  <td className="doc-actions">
+                    <button className="doc-btn doc-btn-sm doc-btn-outline" onClick={() => setPreviewDoc(doc)}>Preview</button>
                     {getDownloadUrl && (
                       <a href={getDownloadUrl(doc.id)} className="doc-btn doc-btn-sm doc-btn-download" download>Download</a>
                     )}
@@ -124,6 +178,14 @@ export default function DocumentList({
             </tbody>
           </table>
         </div>
+      )}
+
+      {previewDoc && getDownloadUrl && (
+        <PreviewModal
+          doc={previewDoc}
+          downloadUrl={getDownloadUrl(previewDoc.id)}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </div>
   );
