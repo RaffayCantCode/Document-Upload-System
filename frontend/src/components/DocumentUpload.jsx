@@ -119,7 +119,7 @@ export default function DocumentUpload({
   apiClient,
   applicantId,
   documentTypes = DEFAULT_DOC_TYPES,
-  maxFileSizeMB = 10,
+  maxFileSizeMB = 1,
   allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'],
   onUploadSuccess,
   onUploadError,
@@ -259,6 +259,14 @@ export default function DocumentUpload({
               <div className="doc-drop-icon"><UploadIcon /></div>
               <p>Drag & drop your file here, or click to browse</p>
               <small>Allowed: {allowedExtensions.join(', ').toUpperCase()} — Max {maxFileSizeMB}MB</small>
+              <div className="doc-dropzone-size">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a10 10 0 1 0 10 10h-10V2z" />
+                  <path d="M12 12 9.5 9.5" />
+                  <path d="M12 7.5V12" />
+                </svg>
+                Most transcripts, CNICs, and photos are under 500KB — 1MB limit is generous
+              </div>
             </div>
           )}
           <input ref={fileInputRef} type="file" onChange={handleChange} hidden accept=".pdf,.png,.jpg,.jpeg" />

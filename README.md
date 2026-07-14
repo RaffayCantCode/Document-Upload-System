@@ -103,21 +103,9 @@ frontend/
 |----------|---------|-------------|
 | `PORT` | 5000 | Server port |
 | `DB_PATH` | database.sqlite | SQLite file path |
-| `MAX_FILE_SIZE_MB` | 10 | Max upload size |
+| `MAX_FILE_SIZE_MB` | 1 | Max upload size |
 | `CORS_ORIGINS` | * | Allowed origins |
 
----
 
-## What's Included
-
-| Deliverable | Location |
-|-------------|----------|
-| Source code | `backend/` + `frontend/` |
-| README | `README.md` |
-| Documentation | `DOCUMENTATION.md` (Markdown), `DOCUMENTATION.doc` (Word), `DOCUMENTATION.html` |
-| Demo results | `DEMO_RESULTS.txt` |
-| Integration examples | `examples/` |
-
----
 
 *Add screenshots and video demo link here.*

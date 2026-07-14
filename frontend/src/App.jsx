@@ -20,7 +20,7 @@ export default function App() {
           <span>CNIC</span>
           <span>Photo</span>
           <span>PDF / PNG / JPG</span>
-          <span>Max 10MB</span>
+          <span>Max 1MB</span>
         </div>
       </header>
 

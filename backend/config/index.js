@@ -3,7 +3,7 @@ const path = require('path');
 const config = {
   port: parseInt(process.env.PORT, 10) || 5000,
   dbPath: path.resolve(__dirname, '..', process.env.DB_PATH || 'database.sqlite'),
-  maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 10,
+  maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 1,
   allowedMimeTypes: {
     'application/pdf': 'pdf',
     'image/png': 'png',
