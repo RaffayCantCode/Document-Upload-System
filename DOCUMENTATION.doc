@@ -18,6 +18,7 @@ hr { border: none; border-top: 1px solid #e2e8f0; margin: 30px 0; }
 </style>
 </head>
 <body>
+<p style="text-align:right; color:#6b7280; font-size:0.9em;">Developer: Muhammad Raffay Asif</p>
 
 <h1>Document Upload System</h1>
 <p><strong>Project:</strong> University Admissions Portal — SafeX Solutions<br>
@@ -127,16 +128,7 @@ frontend/
 <h3>2. Pluggable Database Architecture — Repo as a Dependency</h3>
 <p>The original design had the repository directly importing the SQLite connection. To make it work with any database (PostgreSQL, MySQL, etc.), I had to invert the entire dependency chain. The repository became a factory function returned from <code>createSqliteRepository()</code>, the service accepts the repository as a parameter via <code>createDocumentService(repo)</code>, and the module factory wires everything together. Getting the dependency injection order right without a DI framework required careful sequencing in <code>index.js</code>.</p>
 
-<h3>3. Multer Body Field Timing</h3>
-<p>Multer's diskStorage <code>destination</code> callback fires during file streaming, before the non-file form fields are fully parsed. So <code>req.body.applicant_id</code> was <code>undefined</code> when trying to create the folder path. Switching to memoryStorage and manually writing the file <em>after</em> multer finishes meant the body fields were available, but required extra code to construct the path and write the buffer to disk (or DB in our case) manually.</p>
-
-<h3>4. Two Preview Flows — Local vs Server</h3>
-<p>The app has two completely different preview mechanisms. Before upload: uses <code>URL.createObjectURL(file)</code> to create a local blob URL from the File object. After upload: fetches the file from the database via <code>GET /api/documents/:id/download</code>. Both needed the same modal component but with different data sources. Had to carefully manage object URL lifecycle — <code>revokeObjectURL</code> on modal close to prevent memory leaks, while server URLs should cache. PDFs added another layer: browsers can't reliably preview local PDF blob URLs, so the pre-upload modal shows a message while the post-upload modal opens a new tab.</p>
-
-<h3>5. Scoped CSS for Embeddability</h3>
-<p>Every CSS class is prefixed with <code>doc-*</code> to prevent style collisions when the component is embedded in existing portals. This seems simple but means every new UI element needs a prefixed class name — no room for utility frameworks like Tailwind. The modal overlay (<code>z-index: 1000</code>) had to be high enough to sit above any existing site chrome. Also, the Google Fonts import via <code>@import url(...)</code> won't work in Vite production builds when imported from a CDN, so the system font stack is the fallback.</p>
-
-<h3>6. sql.js Persistence — Manual Save on Every Write</h3>
+<h3>3. sql.js Persistence — Manual Save on Every Write</h3>
 <p>Unlike a real SQLite driver, sql.js operates entirely in memory. The database file is only updated when you explicitly call <code>db.export()</code> and write the buffer to disk. If the server crashes between a write and a save, that data is lost. Every repository method (<code>insertDocument</code>, <code>deleteDocumentById</code>, <code>updateDocumentStatus</code>) must call <code>saveDatabase()</code> after execution. Forgetting one would cause silent data loss that only appears on server restart. This is a fundamental design constraint of using a WASM-compiled database.</p>
 
 <hr>
@@ -153,23 +145,7 @@ frontend/
 
 <hr>
 
-<h2>Demo Results</h2>
-<table>
-<tr><th>Test</th><th>Result</th></tr>
-<tr><td>Upload transcript, CNIC, photo</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>List documents by applicant ID</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>Update status (pending → verified)</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>Download file from database</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>Delete document</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>Reject invalid file type (.txt)</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>Reject oversized file (&gt;10MB)</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>Reject missing fields</td><td style="color:green;">✓ Passed</td></tr>
-<tr><td>404 on non-existent document</td><td style="color:green;">✓ Passed</td></tr>
-</table>
-
-<hr>
-
-<p><em>For screenshots and video demo, see the main README.md</em></p>
+<p><em>Developed by Muhammad Raffay Asif — Group 21, SafeX Solutions</em></p>
 
 </body>
 </html>

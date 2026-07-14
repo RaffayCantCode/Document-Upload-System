@@ -10,15 +10,13 @@
  *
  * With custom database adapter:
  *
- *   const myRepo = {
- *     insertDocument: (id, applicantId, docType, fileName, fileData, fileSize, mimeType) => { ... },
- *     findDocuments: (applicantId) => { ... },
- *     findDocumentById: (id) => { ... },
- *     findDocumentFileById: (id) => { ... },
- *     deleteDocumentById: (id) => { ... },
- *     updateDocumentStatus: (id, status) => { ... },
- *   };
+ *   const myRepo = docUpload.createMyRepository();    // template stubs
+ *   // or   const myRepo = require('./db/postgresRepository');
  *   app.use('/api/documents', docUpload.createModule({ repository: myRepo }));
+ *
+ * Auto-select database by setting DB_TYPE in .env:
+ *   DB_TYPE=sqlite     (default)
+ *   DB_TYPE=postgres
  */
 
 const express = require('express');
@@ -26,13 +24,22 @@ const cors = require('cors');
 const config = require('./config/index');
 const { initDatabase, closeDatabase } = require('./config/db');
 const { createSqliteRepository } = require('./db/documentRepository');
+const { createPostgresRepository } = require('./db/postgresRepository');
+const { createMyRepository } = require('./db/templateRepository');
 const { createDocumentService } = require('./services/documentService');
 const { createDocumentController } = require('./controllers/documentController');
 const { createDocumentRoutes } = require('./routes/documents');
 const errorHandler = require('./middleware/errorHandler');
 
+function getDefaultRepository() {
+  if (config.dbType === 'postgres') {
+    return createPostgresRepository(config.pgConnectionString);
+  }
+  return createSqliteRepository();
+}
+
 function createModule(options = {}) {
-  const repo = options.repository || createSqliteRepository();
+  const repo = options.repository || getDefaultRepository();
   const service = createDocumentService(repo);
   const controller = createDocumentController(service);
   const router = express.Router();
@@ -58,4 +65,7 @@ module.exports = {
   config,
   initDatabase,
   closeDatabase,
+  createSqliteRepository,
+  createPostgresRepository,
+  createMyRepository,
 };

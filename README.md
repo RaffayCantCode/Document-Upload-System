@@ -1,6 +1,7 @@
 # Document Upload System
 
-Group 21 — University Admissions Portal (SafeX Solutions)
+**Developer:** Muhammad Raffay Asif  
+**Group 21** — University Admissions Portal (SafeX Solutions)
 
 React + Express + SQLite (pluggable database)
 
@@ -8,12 +9,23 @@ React + Express + SQLite (pluggable database)
 
 ## Quick Start
 
-```bash
-# Terminal 1 — Backend
-cd backend && npm install && npm start     # → localhost:5000
+> **Important:** Backend and frontend must run **at the same time** in two separate terminals. The frontend on port 3000 sends API calls to the backend on port 5000 — if only one is running, nothing works.
 
-# Terminal 2 — Frontend
-cd frontend && npm install && npm run dev  # → localhost:3000
+### Option A — Double-click `start.bat`
+Opens both terminals automatically. Then open `http://localhost:3000`.
+
+### Option B — Manual (two terminals)
+
+```bash
+# Terminal 1 — Backend (API server)
+cd backend
+npm install    # first time only
+npm start      # → http://localhost:5000
+
+# Terminal 2 — Frontend (UI)
+cd frontend
+npm install    # first time only
+npm run dev    # → http://localhost:3000
 ```
 
 Open `http://localhost:3000`, enter an Applicant ID, pick a file, upload.
@@ -102,17 +114,43 @@ frontend/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | 5000 | Server port |
+| `DB_TYPE` | sqlite | `sqlite` or `postgres` |
 | `DB_PATH` | database.sqlite | SQLite file path |
+| `PG_CONNECTION_STRING` | — | PostgreSQL connection string |
 | `MAX_FILE_SIZE_MB` | 1 | Max upload size |
 | `CORS_ORIGINS` | * | Allowed origins |
+
+---
+
+## Database Adapters
+
+**SQLite** (default) — zero config, files stored as BLOBs.
+
+**PostgreSQL** — switch by setting `DB_TYPE=postgres` + `PG_CONNECTION_STRING` in `.env`:
+```env
+DB_TYPE=postgres
+PG_CONNECTION_STRING=postgresql://user:password@localhost:5432/document_upload
+```
+The PostgreSQL adapter uses the `pg` package with connection pooling. Table is auto-created on first use.
+
+**Your own database** — use the [template repository](backend/db/templateRepository.js) with empty stubs:
+```js
+const myRepo = {
+  async insertDocument(id, applicantId, docType, fileName, fileData, fileSize, mimeType) { /* TODO */ },
+  async findDocuments(applicantId) { /* TODO */ },
+  async findDocumentById(id) { /* TODO */ },
+  async findDocumentFileById(id) { /* TODO */ },
+  async deleteDocumentById(id) { /* TODO */ },
+  async updateDocumentStatus(id, status) { /* TODO */ },
+};
+app.use('/api/documents', docUpload.createModule({ repository: myRepo }));
+```
+Works with MongoDB, MySQL, Firestore, or any database — the service layer never touches SQL.
 
 ## Challenges
 
 - **sql.js BLOBs** — retrieving binary data needed manual `stmt.get()` + `Buffer.from()` instead of `getAsObject()`
 - **Pluggable DB** — inverted repo/service/controller into factory functions so users inject their own database adapter
-- **Multer timing** — `req.body` undefined in diskStorage destination; switched to memoryStorage + manual write
-- **Two preview flows** — pre-upload (`URL.createObjectURL`) vs post-upload (DB download); PDF blob URLs unreliable in browsers
-- **Scoped CSS** — all `doc-*` prefixed to avoid clashing with host site styles
 - **sql.js persistence** — in-memory DB requires explicit `saveDatabase()` after every write or data is lost on crash
 
 Full details in `DOCUMENTATION.doc`.

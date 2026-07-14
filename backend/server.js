@@ -33,7 +33,7 @@ a:hover { box-shadow: 0 8px 25px rgba(99,102,241,0.35); }
   <div class="env">
     <span>Port: ${config.port}</span>
     <span>Max upload: ${config.maxFileSizeMB}MB</span>
-    <span>Database: SQLite</span>
+    <span>Database: ${config.dbType === 'postgres' ? 'PostgreSQL' : 'SQLite'}</span>
   </div>
 </div>
 </body>
