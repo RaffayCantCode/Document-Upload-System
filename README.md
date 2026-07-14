@@ -253,22 +253,4 @@ Document-Upload-System/
 
 ## Screenshots
 
-*(Add screenshots of the running app here)*
 
----
-
-## Video Demonstration
-
-*(Link to 5-15 min explanation video — architecture, challenges, tools, working demo)*
-
----
-
-## Submission Checklist
-
-- [x] Source code
-- [x] README with setup instructions
-- [x] API documentation
-- [ ] Screenshots / recording
-- [ ] Explanation video (5-15 min, HD, face visible)
-- [ ] Push to GitHub
-- [ ] Submit individual feedback on Group Leader

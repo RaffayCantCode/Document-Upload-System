@@ -15,6 +15,13 @@ export default function App() {
       <header className="doc-header">
         <h1>Document Upload System</h1>
         <p>University Admissions Portal — SafeX Solutions</p>
+        <div className="doc-badge-line">
+          <span>Transcript</span>
+          <span>CNIC</span>
+          <span>Photo</span>
+          <span>PDF / PNG / JPG</span>
+          <span>Max 10MB</span>
+        </div>
       </header>
 
       <section className="doc-section">

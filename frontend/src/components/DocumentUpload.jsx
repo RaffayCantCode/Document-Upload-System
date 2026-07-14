@@ -12,6 +12,44 @@ function formatSize(bytes) {
   return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
+function UploadIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#86efac" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="15" y1="9" x2="9" y2="15" />
+      <line x1="9" y1="9" x2="15" y2="15" />
+    </svg>
+  );
+}
+
 export default function DocumentUpload({
   apiClient,
   applicantId,
@@ -94,8 +132,18 @@ export default function DocumentUpload({
 
   return (
     <div className={`doc-upload-module ${className}`}>
-      {error && <div className="doc-alert doc-alert-error">{error}</div>}
-      {success && <div className="doc-alert doc-alert-success">{success}</div>}
+      {error && (
+        <div className="doc-alert doc-alert-error">
+          <span className="doc-alert-icon"><XIcon /></span>
+          <span>{error}</span>
+        </div>
+      )}
+      {success && (
+        <div className="doc-alert doc-alert-success">
+          <span className="doc-alert-icon"><CheckIcon /></span>
+          <span>{success}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="doc-form-row">
@@ -118,19 +166,25 @@ export default function DocumentUpload({
         >
           {file ? (
             <div className="doc-file-selected">
-              <span className="doc-file-icon">&#128196;</span>
-              <span>{file.name}</span>
+              <span className="doc-file-icon"><FileIcon /></span>
+              <span className="doc-file-name">{file.name}</span>
               <span className="doc-file-size">{formatSize(file.size)}</span>
             </div>
           ) : (
             <div className="doc-drop-text">
-              <span className="doc-upload-icon">&#11014;&#65039;</span>
-              <p>Drag & drop a file here, or click to browse</p>
+              <div className="doc-drop-icon"><UploadIcon /></div>
+              <p>Drag & drop your file here, or click to browse</p>
               <small>Allowed: {allowedExtensions.join(', ').toUpperCase()} — Max {maxFileSizeMB}MB</small>
             </div>
           )}
           <input ref={fileInputRef} type="file" onChange={handleChange} hidden accept=".pdf,.png,.jpg,.jpeg" />
         </div>
+
+        {uploading && (
+          <div className="doc-progress-bar">
+            <div className="doc-progress-fill" style={{ width: '60%' }} />
+          </div>
+        )}
 
         <button type="submit" className="doc-btn doc-btn-primary" disabled={uploading || !file}>
           {uploading ? 'Uploading...' : 'Upload Document'}
