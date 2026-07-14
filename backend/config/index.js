@@ -1,9 +1,7 @@
 const path = require('path');
-const fs = require('fs');
 
 const config = {
   port: parseInt(process.env.PORT, 10) || 5000,
-  uploadDir: path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'uploads'),
   dbPath: path.resolve(__dirname, '..', process.env.DB_PATH || 'database.sqlite'),
   maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 10,
   allowedMimeTypes: {
@@ -22,9 +20,5 @@ Object.defineProperty(config, 'maxFileSizeBytes', {
     return this.maxFileSizeMB * 1024 * 1024;
   },
 });
-
-if (!fs.existsSync(config.uploadDir)) {
-  fs.mkdirSync(config.uploadDir, { recursive: true });
-}
 
 module.exports = config;

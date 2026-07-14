@@ -320,6 +320,18 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
+.doc-btn-download {
+  background: rgba(129, 140, 248, 0.1);
+  color: #a5b4fc;
+  border: 1px solid rgba(129, 140, 248, 0.2);
+  text-decoration: none;
+  margin-right: 6px;
+}
+.doc-btn-download:hover {
+  background: rgba(129, 140, 248, 0.2);
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
 /* ── Toast Alerts ── */
 .doc-alert {
   padding: 14px 18px;

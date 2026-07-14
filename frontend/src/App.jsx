@@ -53,6 +53,7 @@ export default function App() {
           loading={loading}
           error={listError}
           onDelete={deleteDocument}
+          getDownloadUrl={apiClient.getDownloadUrl}
           emptyMessage={applicantId ? 'No documents found for this applicant.' : 'Enter an Applicant ID to view documents.'}
         />
       </section>

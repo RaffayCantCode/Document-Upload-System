@@ -20,7 +20,7 @@ async function initDatabase() {
       applicant_id  TEXT NOT NULL,
       document_type TEXT NOT NULL CHECK(document_type IN ('transcript','cnic','photo')),
       file_name     TEXT NOT NULL,
-      stored_path   TEXT NOT NULL,
+      file_data     BLOB,
       file_size     INTEGER NOT NULL,
       mime_type     TEXT NOT NULL,
       uploaded_at   TEXT NOT NULL DEFAULT (datetime('now')),

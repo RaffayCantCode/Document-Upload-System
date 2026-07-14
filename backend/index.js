@@ -1,30 +1,40 @@
 /**
  * Document Upload System — Backend Module
  *
- * Usage (mount into any Express app):
+ * Usage:
  *
- *   const express = require('express');
- *   const app = express();
+ *   const docUpload = require('./backend');
+ *   await docUpload.initDatabase();
+ *   app.use('/api/documents', docUpload.createModule());
+ *   app.use(docUpload.errorHandler);
  *
- *   const documentUpload = require('./backend');
- *   app.use('/api/documents', documentUpload.router);
+ * With custom database adapter:
  *
- *   // Optionally apply CORS and error handling:
- *   app.use(documentUpload.errorHandler);
- *
- * Or run standalone:
- *   node backend/server.js
+ *   const myRepo = {
+ *     insertDocument: (id, applicantId, docType, fileName, fileData, fileSize, mimeType) => { ... },
+ *     findDocuments: (applicantId) => { ... },
+ *     findDocumentById: (id) => { ... },
+ *     findDocumentFileById: (id) => { ... },
+ *     deleteDocumentById: (id) => { ... },
+ *     updateDocumentStatus: (id, status) => { ... },
+ *   };
+ *   app.use('/api/documents', docUpload.createModule({ repository: myRepo }));
  */
 
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const config = require('./config/index');
 const { initDatabase, closeDatabase } = require('./config/db');
-const documentRouter = require('./routes/documents');
+const { createSqliteRepository } = require('./db/documentRepository');
+const { createDocumentService } = require('./services/documentService');
+const { createDocumentController } = require('./controllers/documentController');
+const { createDocumentRoutes } = require('./routes/documents');
 const errorHandler = require('./middleware/errorHandler');
 
 function createModule(options = {}) {
+  const repo = options.repository || createSqliteRepository();
+  const service = createDocumentService(repo);
+  const controller = createDocumentController(service);
   const router = express.Router();
 
   const corsOptions = {
@@ -37,17 +47,13 @@ function createModule(options = {}) {
   router.use(express.json());
   router.use(express.urlencoded({ extended: true }));
 
-  const uploadsPath = options.uploadDir || config.uploadDir;
-  router.use('/files', express.static(uploadsPath));
-
-  router.use('/', documentRouter);
+  router.use('/', createDocumentRoutes(controller));
 
   return router;
 }
 
 module.exports = {
   createModule,
-  router: createModule(),
   errorHandler,
   config,
   initDatabase,

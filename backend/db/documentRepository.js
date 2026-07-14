@@ -1,45 +1,79 @@
+/**
+ * Document Repository — Database adapter
+ *
+ * Default implementation uses SQLite via sql.js.
+ * Swap this out by passing your own adapter to createModule():
+ *
+ *   const myRepo = {
+ *     insertDocument: (id, applicantId, docType, fileName, fileBuffer, fileSize, mimeType) => { ... },
+ *     findDocuments: (applicantId) => { ... },
+ *     findDocumentById: (id) => { ... },
+ *     findDocumentFileById: (id) => { ... },
+ *     deleteDocumentById: (id) => { ... },
+ *     updateDocumentStatus: (id, status) => { ... },
+ *   };
+ *   app.use('/api/documents', documentUpload.createModule({ repository: myRepo }));
+ */
+
 const { getDb, saveDatabase } = require('../config/db');
 
-function insertDocument(id, applicantId, docType, fileName, storedPath, fileSize, mimeType) {
-  const db = getDb();
-  db.run(
-    `INSERT INTO documents (id, applicant_id, document_type, file_name, stored_path, file_size, mime_type, uploaded_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
-    [id, applicantId, docType, fileName, storedPath, fileSize, mimeType]
-  );
-  saveDatabase();
-}
+function createSqliteRepository() {
+  return {
+    insertDocument(id, applicantId, docType, fileName, fileData, fileSize, mimeType) {
+      const db = getDb();
+      db.run(
+        `INSERT INTO documents (id, applicant_id, document_type, file_name, file_data, file_size, mime_type, uploaded_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        [id, applicantId, docType, fileName, fileData, fileSize, mimeType]
+      );
+      saveDatabase();
+    },
 
-function findDocuments(applicantId) {
-  const db = getDb();
-  let query = 'SELECT * FROM documents';
-  const params = [];
+    findDocuments(applicantId) {
+      const db = getDb();
+      let sql = 'SELECT id, applicant_id, document_type, file_name, file_size, mime_type, uploaded_at, status FROM documents';
+      const params = [];
+      if (applicantId) {
+        sql += ' WHERE applicant_id = ?';
+        params.push(applicantId);
+      }
+      sql += ' ORDER BY uploaded_at DESC';
+      return queryAll(db, sql, params);
+    },
 
-  if (applicantId) {
-    query += ' WHERE applicant_id = ?';
-    params.push(applicantId);
-  }
+    findDocumentById(id) {
+      const db = getDb();
+      const rows = queryAll(db, 'SELECT id, applicant_id, document_type, file_name, file_size, mime_type, uploaded_at, status FROM documents WHERE id = ?', [id]);
+      return rows.length ? rows[0] : null;
+    },
 
-  query += ' ORDER BY uploaded_at DESC';
-  return queryAll(db, query, params);
-}
+    findDocumentFileById(id) {
+      const db = getDb();
+      const stmt = db.prepare('SELECT id, file_name, mime_type, file_data FROM documents WHERE id = ?');
+      stmt.bind([id]);
+      let row = null;
+      if (stmt.step()) {
+        const cols = stmt.getColumnNames();
+        const vals = stmt.get();
+        row = {};
+        cols.forEach((c, i) => { row[c] = vals[i]; });
+      }
+      stmt.free();
+      return row;
+    },
 
-function findDocumentById(id) {
-  const db = getDb();
-  const results = queryAll(db, 'SELECT * FROM documents WHERE id = ?', [id]);
-  return results.length ? results[0] : null;
-}
+    deleteDocumentById(id) {
+      const db = getDb();
+      db.run('DELETE FROM documents WHERE id = ?', [id]);
+      saveDatabase();
+    },
 
-function deleteDocumentById(id) {
-  const db = getDb();
-  db.run('DELETE FROM documents WHERE id = ?', [id]);
-  saveDatabase();
-}
-
-function updateDocumentStatus(id, status) {
-  const db = getDb();
-  db.run('UPDATE documents SET status = ? WHERE id = ?', [status, id]);
-  saveDatabase();
+    updateDocumentStatus(id, status) {
+      const db = getDb();
+      db.run('UPDATE documents SET status = ? WHERE id = ?', [status, id]);
+      saveDatabase();
+    },
+  };
 }
 
 function queryAll(db, sql, params = []) {
@@ -53,10 +87,4 @@ function queryAll(db, sql, params = []) {
   return rows;
 }
 
-module.exports = {
-  insertDocument,
-  findDocuments,
-  findDocumentById,
-  deleteDocumentById,
-  updateDocumentStatus,
-};
+module.exports = { createSqliteRepository };

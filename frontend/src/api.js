@@ -46,5 +46,9 @@ export function createApiClient(baseUrl = '/api/documents') {
     return data;
   }
 
-  return { upload, list, get, remove, updateStatus };
+  function getDownloadUrl(id) {
+    return `${api}/${id}/download`;
+  }
+
+  return { upload, list, get, remove, updateStatus, getDownloadUrl };
 }

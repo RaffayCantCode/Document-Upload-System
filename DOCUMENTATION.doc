@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Document Upload System — Documentation</title>
+<style>
+body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1a1a2e; line-height: 1.6; }
+h1 { color: #4f46e5; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; }
+h2 { color: #3730a3; margin-top: 30px; }
+h3 { color: #4338ca; }
+code { background: #f0f0f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre { background: #1a1a2e; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+th { background: #f0f0f5; font-weight: 600; }
+ul { padding-left: 20px; }
+hr { border: none; border-top: 1px solid #e2e8f0; margin: 30px 0; }
+</style>
+</head>
+<body>
+
+<h1>Document Upload System</h1>
+<p><strong>Project:</strong> University Admissions Portal — SafeX Solutions<br>
+<strong>Developer:</strong> Group 21 Member<br>
+<strong>Stack:</strong> React 19 + Express.js + SQLite (pluggable database)</p>
+
+<hr>
+
+<h2>What It Does</h2>
+<p>Lets university applicants upload transcripts, CNIC, and photos for admission. Files are validated (type + size) and stored directly in the database — no file system needed.</p>
+
+<hr>
+
+<h2>How to Run</h2>
+<ol>
+<li><strong>Backend:</strong> <code>cd backend && npm install && npm start</code> → runs on <code>http://localhost:5000</code></li>
+<li><strong>Frontend:</strong> <code>cd frontend && npm install && npm run dev</code> → runs on <code>http://localhost:3000</code></li>
+<li>Open <code>http://localhost:3000</code>, enter Applicant ID, pick a file, upload</li>
+</ol>
+
+<hr>
+
+<h2>API Endpoints</h2>
+<table>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+<tr><td>POST</td><td><code>/api/documents/upload</code></td><td>Upload a file (multipart: file + applicant_id + document_type)</td></tr>
+<tr><td>GET</td><td><code>/api/documents?applicant_id=</code></td><td>List documents for an applicant</td></tr>
+<tr><td>GET</td><td><code>/api/documents/:id</code></td><td>Get document metadata</td></tr>
+<tr><td>GET</td><td><code>/api/documents/:id/download</code></td><td>Download the actual file from database</td></tr>
+<tr><td>DELETE</td><td><code>/api/documents/:id</code></td><td>Delete a document</td></tr>
+<tr><td>PATCH</td><td><code>/api/documents/:id/status</code></td><td>Update status (pending/verified/rejected)</td></tr>
+</table>
+
+<hr>
+
+<h2>How to Integrate Into an Existing Site</h2>
+
+<h3>Backend (3 lines of code)</h3>
+<pre>const docUpload = require('./backend');
+await docUpload.initDatabase();
+app.use('/api/documents', docUpload.createModule());
+app.use(docUpload.errorHandler);</pre>
+<p>That's it. The module adds all 6 endpoints under <code>/api/documents</code>.</p>
+
+<h3>Use Your Own Database</h3>
+<p>Pass a custom repository adapter:</p>
+<pre>const myRepo = {
+  insertDocument: (id, applicantId, docType, fileName, fileBuffer, fileSize, mimeType) => { /* SQL */ },
+  findDocuments: (applicantId) => { /* SQL query returning array */ },
+  findDocumentById: (id) => { /* SQL returning one row */ },
+  findDocumentFileById: (id) => { /* SQL returning {file_name, mime_type, file_data} */ },
+  deleteDocumentById: (id) => { /* SQL DELETE */ },
+  updateDocumentStatus: (id, status) => { /* SQL UPDATE */ },
+};
+app.use('/api/documents', docUpload.createModule({ repository: myRepo }));</pre>
+<p>Works with PostgreSQL, MySQL, MongoDB, or any database you already have.</p>
+
+<h3>Frontend (React)</h3>
+<pre>import { DocumentUpload, DocumentList, createApiClient, useDocuments } from './frontend/src/index';
+import './frontend/src/App.css';
+
+const api = createApiClient('https://your-site.com/api/documents');
+
+function MyPage() {
+  const [id, setId] = useState('APP-2024-001');
+  const { documents, deleteDocument, refresh } = useDocuments(api, id);
+
+  return (
+    &lt;div&gt;
+      &lt;DocumentUpload apiClient={api} applicantId={id} onUploadSuccess={refresh} /&gt;
+      &lt;DocumentList documents={documents} onDelete={deleteDocument} /&gt;
+    &lt;/div&gt;
+  );
+}</pre>
+
+<hr>
+
+<h2>Project Structure</h2>
+<pre>
+backend/
+  config/          - Environment config + database init
+  middleware/      - File upload (Multer) + error handling
+  routes/          - API route definitions
+  controllers/     - Request handlers
+  services/        - Business logic
+  db/              - Repository (database adapter)
+  index.js         - Module factory (mount into any Express app)
+  server.js        - Standalone launcher
+
+frontend/
+  src/
+    components/    - DocumentUpload + DocumentList (reusable widgets)
+    hooks/         - useDocuments (API state hook)
+    api.js         - API client factory
+    index.js       - Public exports
+    App.jsx        - Demo app
+    App.css        - Scoped styles
+</pre>
+
+<hr>
+
+<h2>Challenges Faced</h2>
+<ul>
+<li><strong>No Python on machine:</strong> Native SQLite modules (better-sqlite3) need Python for compilation. Switched to sql.js — a pure JavaScript SQLite that works without any build tools.</li>
+<li><strong>Restricted PowerShell:</strong> Execution policy blocked npm scripts. Had to call npm via full path (<code>C:\Program Files\nodejs\npm.cmd</code>) instead of just <code>npm</code>.</li>
+<li><strong>Windows curl + JSON:</strong> PowerShell's single quotes don't parse properly with curl's <code>-d</code> flag. Had to write JSON to a temp file and use <code>-d @file</code> instead.</li>
+<li><strong>Multer body timing:</strong> Body fields weren't available in Multer's diskStorage destination callback. Switched to memoryStorage + manual write after validation.</li>
+<li><strong>Google Fonts in production build:</strong> Vite doesn't process external CSS imports from node_modules. Used system font stack as fallback.</li>
+</ul>
+
+<hr>
+
+<h2>Technologies Used</h2>
+<table>
+<tr><th>Tool</th><th>Purpose</th></tr>
+<tr><td>Node.js / Express</td><td>Backend server + REST API</td></tr>
+<tr><td>React 19 + Vite</td><td>Frontend UI + build tool</td></tr>
+<tr><td>SQLite (sql.js)</td><td>Default database (files stored as BLOBs)</td></tr>
+<tr><td>Multer</td><td>File upload handling + validation</td></tr>
+<tr><td>Git + GitHub</td><td>Version control</td></tr>
+</table>
+
+<hr>
+
+<h2>Demo Results</h2>
+<table>
+<tr><th>Test</th><th>Result</th></tr>
+<tr><td>Upload transcript, CNIC, photo</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>List documents by applicant ID</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>Update status (pending → verified)</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>Download file from database</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>Delete document</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>Reject invalid file type (.txt)</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>Reject oversized file (&gt;10MB)</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>Reject missing fields</td><td style="color:green;">✓ Passed</td></tr>
+<tr><td>404 on non-existent document</td><td style="color:green;">✓ Passed</td></tr>
+</table>
+
+<hr>
+
+<p><em>For screenshots and video demo, see the main README.md</em></p>
+
+</body>
+</html>

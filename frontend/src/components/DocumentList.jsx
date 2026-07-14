@@ -45,6 +45,7 @@ export default function DocumentList({
   loading = false,
   error = '',
   onDelete,
+  getDownloadUrl,
   showStatusFilter = true,
   emptyMessage = 'No documents found.',
   className = '',
@@ -113,6 +114,9 @@ export default function DocumentList({
                   <td>{formatDate(doc.uploaded_at)}</td>
                   <td><span className={`doc-badge ${STATUS_CLASSES[doc.status] || 'doc-status-pending'}`}>{doc.status}</span></td>
                   <td>
+                    {getDownloadUrl && (
+                      <a href={getDownloadUrl(doc.id)} className="doc-btn doc-btn-sm doc-btn-download" download>Download</a>
+                    )}
                     <button className="doc-btn doc-btn-sm doc-btn-danger" onClick={() => handleDelete(doc.id)}>Delete</button>
                   </td>
                 </tr>
