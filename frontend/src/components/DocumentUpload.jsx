@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 
 const DEFAULT_DOC_TYPES = [
   { value: 'transcript', label: 'Transcript' },
@@ -50,6 +50,71 @@ function XIcon() {
   );
 }
 
+function EyeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function PreUploadPreview({ file, onClose }) {
+  const [loaded, setLoaded] = useState(false);
+  const isImage = file.type.startsWith('image/');
+  const objectUrl = useRef(null);
+
+  if (!objectUrl.current) {
+    objectUrl.current = URL.createObjectURL(file);
+  }
+
+  const handleClose = useCallback(() => {
+    if (objectUrl.current) {
+      URL.revokeObjectURL(objectUrl.current);
+      objectUrl.current = null;
+    }
+    onClose();
+  }, [onClose]);
+
+  return (
+    <div className="doc-modal-overlay" onClick={handleClose}>
+      <div className="doc-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="doc-modal-header">
+          <span className="doc-modal-title">{file.name}</span>
+          <button className="doc-modal-close" onClick={handleClose}>&times;</button>
+        </div>
+        <div className="doc-modal-body">
+          {isImage ? (
+            <div className="doc-preview-image-wrap">
+              {!loaded && <div className="doc-spinner"><div className="doc-spinner-ring" /><span>Loading preview...</span></div>}
+              <img
+                src={objectUrl.current}
+                alt={file.name}
+                onLoad={() => setLoaded(true)}
+                className={`doc-preview-image ${loaded ? 'doc-preview-loaded' : ''}`}
+              />
+            </div>
+          ) : (
+            <div className="doc-preview-pdf">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <p>PDF preview not available before upload.</p>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '-8px' }}>Upload the file first, then use the preview feature in the document list.</p>
+            </div>
+          )}
+        </div>
+        <div className="doc-modal-footer">
+          <span className="doc-modal-meta">{formatSize(file.size)} &middot; {file.type || 'unknown type'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DocumentUpload({
   apiClient,
   applicantId,
@@ -66,6 +131,7 @@ export default function DocumentUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [previewFile, setPreviewFile] = useState(null);
   const fileInputRef = useRef(null);
 
   const validateFile = (f) => {
@@ -162,13 +228,31 @@ export default function DocumentUpload({
           onDrop={handleDrop}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => !file && fileInputRef.current?.click()}
         >
           {file ? (
             <div className="doc-file-selected">
               <span className="doc-file-icon"><FileIcon /></span>
-              <span className="doc-file-name">{file.name}</span>
-              <span className="doc-file-size">{formatSize(file.size)}</span>
+              <div className="doc-file-info">
+                <span className="doc-file-name">{file.name}</span>
+                <span className="doc-file-size">{formatSize(file.size)}</span>
+              </div>
+              <button
+                type="button"
+                className="doc-btn doc-btn-sm doc-btn-preview"
+                onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }}
+                title="Preview file"
+              >
+                <EyeIcon /> Preview
+              </button>
+              <button
+                type="button"
+                className="doc-btn doc-btn-sm doc-btn-remove"
+                onClick={(e) => { e.stopPropagation(); setFile(null); setError(''); }}
+                title="Remove file"
+              >
+                <XIcon /> Remove
+              </button>
             </div>
           ) : (
             <div className="doc-drop-text">
@@ -190,6 +274,10 @@ export default function DocumentUpload({
           {uploading ? 'Uploading...' : 'Upload Document'}
         </button>
       </form>
+
+      {previewFile && (
+        <PreUploadPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+      )}
     </div>
   );
 }
