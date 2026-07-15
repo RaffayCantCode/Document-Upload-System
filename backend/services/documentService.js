@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const config = require('../config/index');
 
 function createDocumentService(repo) {
-  function uploadDocument(file, applicantId, docType) {
+  async function uploadDocument(file, applicantId, docType) {
     if (!file) {
       throw Object.assign(new Error('No file provided'), { status: 400 });
     }
@@ -17,49 +17,49 @@ function createDocumentService(repo) {
     }
 
     const id = uuidv4();
-    repo.insertDocument(id, applicantId, docType, file.originalname, file.buffer, file.size, file.mimetype);
+    await repo.insertDocument(id, applicantId, docType, file.originalname, file.buffer, file.size, file.mimetype);
 
     return { id, applicant_id: applicantId, document_type: docType, file_name: file.originalname, file_size: file.size, mime_type: file.mimetype };
   }
 
-  function listDocuments(applicantId) {
+  async function listDocuments(applicantId) {
     return repo.findDocuments(applicantId || null);
   }
 
-  function getDocument(id) {
-    const doc = repo.findDocumentById(id);
+  async function getDocument(id) {
+    const doc = await repo.findDocumentById(id);
     if (!doc) {
       throw Object.assign(new Error('Document not found'), { status: 404 });
     }
     return doc;
   }
 
-  function getDocumentFile(id) {
-    const file = repo.findDocumentFileById(id);
+  async function getDocumentFile(id) {
+    const file = await repo.findDocumentFileById(id);
     if (!file) {
       throw Object.assign(new Error('Document not found'), { status: 404 });
     }
     return file;
   }
 
-  function deleteDocument(id) {
-    const doc = repo.findDocumentById(id);
+  async function deleteDocument(id) {
+    const doc = await repo.findDocumentById(id);
     if (!doc) {
       throw Object.assign(new Error('Document not found'), { status: 404 });
     }
-    repo.deleteDocumentById(id);
+    await repo.deleteDocumentById(id);
   }
 
-  function updateStatus(id, status) {
+  async function updateStatus(id, status) {
     const valid = ['pending', 'verified', 'rejected'];
     if (!valid.includes(status)) {
       throw Object.assign(new Error(`Invalid status. Use: ${valid.join(', ')}`), { status: 400 });
     }
-    const doc = repo.findDocumentById(id);
+    const doc = await repo.findDocumentById(id);
     if (!doc) {
       throw Object.assign(new Error('Document not found'), { status: 404 });
     }
-    repo.updateDocumentStatus(id, status);
+    await repo.updateDocumentStatus(id, status);
   }
 
   return { uploadDocument, listDocuments, getDocument, getDocumentFile, deleteDocument, updateStatus };

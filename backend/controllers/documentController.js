@@ -1,59 +1,41 @@
 function createDocumentController(service) {
-  function upload(req, res, next) {
-    try {
-      const doc = service.uploadDocument(req.file, req.body.applicant_id, req.body.document_type);
-      res.status(201).json({ message: 'File uploaded successfully', document: doc });
-    } catch (err) {
-      next(err);
-    }
+  function asyncHandler(fn) {
+    return (req, res, next) => {
+      fn(req, res, next).catch(next);
+    };
   }
 
-  function list(req, res, next) {
-    try {
-      const documents = service.listDocuments(req.query.applicant_id);
-      res.json({ documents });
-    } catch (err) {
-      next(err);
-    }
-  }
+  const upload = asyncHandler(async (req, res) => {
+    const doc = await service.uploadDocument(req.file, req.body.applicant_id, req.body.document_type);
+    res.status(201).json({ message: 'File uploaded successfully', document: doc });
+  });
 
-  function getById(req, res, next) {
-    try {
-      const doc = service.getDocument(req.params.id);
-      res.json({ document: doc });
-    } catch (err) {
-      next(err);
-    }
-  }
+  const list = asyncHandler(async (req, res) => {
+    const documents = await service.listDocuments(req.query.applicant_id);
+    res.json({ documents });
+  });
 
-  function download(req, res, next) {
-    try {
-      const file = service.getDocumentFile(req.params.id);
-      res.setHeader('Content-Type', file.mime_type);
-      res.setHeader('Content-Disposition', `attachment; filename="${file.file_name}"`);
-      res.send(Buffer.from(file.file_data));
-    } catch (err) {
-      next(err);
-    }
-  }
+  const getById = asyncHandler(async (req, res) => {
+    const doc = await service.getDocument(req.params.id);
+    res.json({ document: doc });
+  });
 
-  function remove(req, res, next) {
-    try {
-      service.deleteDocument(req.params.id);
-      res.json({ message: 'Document deleted successfully' });
-    } catch (err) {
-      next(err);
-    }
-  }
+  const download = asyncHandler(async (req, res) => {
+    const file = await service.getDocumentFile(req.params.id);
+    res.setHeader('Content-Type', file.mime_type);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.file_name}"`);
+    res.send(Buffer.from(file.file_data));
+  });
 
-  function patchStatus(req, res, next) {
-    try {
-      service.updateStatus(req.params.id, req.body.status);
-      res.json({ message: 'Document status updated' });
-    } catch (err) {
-      next(err);
-    }
-  }
+  const remove = asyncHandler(async (req, res) => {
+    await service.deleteDocument(req.params.id);
+    res.json({ message: 'Document deleted successfully' });
+  });
+
+  const patchStatus = asyncHandler(async (req, res) => {
+    await service.updateStatus(req.params.id, req.body.status);
+    res.json({ message: 'Document status updated' });
+  });
 
   return { upload, list, getById, download, remove, patchStatus };
 }
