@@ -15,21 +15,39 @@ async function initDatabase() {
   }
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS documents (
+    CREATE TABLE IF NOT EXISTS applicants (
+      applicant_id  TEXT PRIMARY KEY,
+      full_name     TEXT NOT NULL DEFAULT '',
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+
+      transcript_file_name    TEXT,
+      transcript_file_data    BLOB,
+      transcript_file_size    INTEGER,
+      transcript_mime_type    TEXT,
+      transcript_uploaded_at  TEXT,
+      transcript_status       TEXT NOT NULL DEFAULT 'pending',
+
+      cnic_file_name    TEXT,
+      cnic_file_data    BLOB,
+      cnic_file_size    INTEGER,
+      cnic_mime_type    TEXT,
+      cnic_uploaded_at  TEXT,
+      cnic_status       TEXT NOT NULL DEFAULT 'pending'
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS photos (
       id            TEXT PRIMARY KEY,
       applicant_id  TEXT NOT NULL,
-      full_name     TEXT NOT NULL DEFAULT '',
-      document_type TEXT NOT NULL CHECK(document_type IN ('transcript','cnic','photo')),
       file_name     TEXT NOT NULL,
       file_data     BLOB,
       file_size     INTEGER NOT NULL,
       mime_type     TEXT NOT NULL,
       uploaded_at   TEXT NOT NULL DEFAULT (datetime('now')),
-      status        TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','verified','rejected'))
+      status        TEXT NOT NULL DEFAULT 'pending'
     )
   `);
-
-  try { db.run('ALTER TABLE documents ADD COLUMN full_name TEXT NOT NULL DEFAULT \'\''); } catch (e) {}
 
   saveDatabase();
   return db;

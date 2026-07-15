@@ -1,84 +1,88 @@
 /**
  * Template Repository — Stub Adapter
  *
- * Copy this file and implement each method for your own database
- * (MongoDB, MySQL, Firestore, etc.). Then pass the object to createModule():
+ * The system now uses a single-row-per-applicant design:
+ *   - applicants table: 1 row per applicant with transcript + cnic columns
+ *   - photos table: 1 row per photo (1-to-many with applicant)
  *
- *   const myRepo = createMyRepository();
- *   app.use('/api/documents', docUpload.createModule({ repository: myRepo }));
+ * Document IDs for API:
+ *   - transcript → "transcript:<applicant_id>"
+ *   - cnic       → "cnic:<applicant_id>"
+ *   - photo      → "<photo_uuid>"
  *
- * Method signatures and expected return types are documented below.
+ * Implement these methods and pass to createModule({ repository: myRepo }).
  */
 
 function createMyRepository() {
   return {
 
     /**
-     * Insert or update a document for this applicant + document_type.
-     * For transcript/cnic: if a row exists, update it (upsert). Only 1 per applicant.
-     * For photo: always insert a new row (multiple photos allowed).
-     * @param {string} id          — UUID (only used for new inserts)
-     * @param {string} applicantId — e.g. "STU-001"
-     * @param {string} fullName    — applicant's full name
-     * @param {string} docType     — one of: "transcript", "cnic", "photo"
-     * @param {string} fileName    — original file name
-     * @param {Buffer} fileData    — raw file bytes (BLOB)
-     * @param {number} fileSize    — file size in bytes
-     * @param {string} mimeType    — e.g. "application/pdf", "image/png"
-     * @returns {string} the id of the upserted/inserted document
+     * Upload a document.
+     * For transcript/cnic: upsert into applicants table (set the type's columns).
+     * For photo: insert into photos table.
+     * @param {string} id          — UUID (for photos; ignored for transcript/cnic)
+     * @param {string} applicantId
+     * @param {string} fullName
+     * @param {string} docType     — "transcript" | "cnic" | "photo"
+     * @param {string} fileName
+     * @param {Buffer} fileData
+     * @param {number} fileSize
+     * @param {string} mimeType
+     * @returns {string} document id — "transcript:<id>" | "cnic:<id>" | "<photo-uuid>"
      */
     async upsertDocument(id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType) {
-      // TODO: if (docType === 'transcript' || docType === 'cnic') check existing;
-      //       if exists UPDATE and return its id, else INSERT new
-      return id;
+      // TODO
+      return docType === 'photo' ? id : docType + ':' + applicantId;
     },
 
     /**
-     * List documents, optionally filtered by applicantId.
-     * @param {string|null} applicantId — filter or null for all
-     * @returns {Array<object>} each object: { id, applicant_id, full_name, document_type, file_name, file_size, mime_type, uploaded_at, status }
-     *   Do NOT include file_data for performance.
+     * List all documents for an applicant.
+     * Return transcript + cnic (from applicants row) + all photos.
+     * @param {string} applicantId
+     * @returns {Array<object>} each with: id, applicant_id, full_name, document_type, file_name, file_size, mime_type, uploaded_at, status
      */
     async findDocuments(applicantId) {
-      // TODO: SELECT … return array
+      // TODO: SELECT applicants row + photos WHERE applicant_id = ?
       return [];
     },
 
     /**
-     * Get a single document's metadata by id.
-     * @param {string} id
-     * @returns {object|null} { id, applicant_id, full_name, document_type, file_name, file_size, mime_type, uploaded_at, status }
+     * Get a single document's metadata by its composite id.
+     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "<photo-uuid>"
+     * @returns {object|null}
      */
     async findDocumentById(id) {
-      // TODO: SELECT … return one row or null
+      // TODO: parse prefix, look up applicants or photos
       return null;
     },
 
     /**
-     * Get a document's file data for download.
-     * @param {string} id
-     * @returns {object|null} { id, file_name, mime_type, file_data(Buffer) }
+     * Get file data for download.
+     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "<photo-uuid>"
+     * @returns {object|null} { file_name, mime_type, file_data(Buffer) }
      */
     async findDocumentFileById(id) {
-      // TODO: SELECT … return one row or null; file_data should be a Buffer
+      // TODO
       return null;
     },
 
     /**
-     * Delete a document by id.
+     * Delete a document.
+     * For transcript/cnic: NULL out those columns in applicants row.
+     * For photo: DELETE from photos table.
      * @param {string} id
      */
     async deleteDocumentById(id) {
-      // TODO: DELETE FROM …
+      // TODO
     },
 
     /**
      * Update a document's status.
      * @param {string} id
-     * @param {string} status — one of: "pending", "verified", "rejected"
+     * @param {string} status — "pending" | "verified" | "rejected"
      */
     async updateDocumentStatus(id, status) {
-      // TODO: UPDATE …
+      // TODO
     },
   };
 }
