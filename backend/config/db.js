@@ -30,7 +30,6 @@ async function initDatabase() {
   `);
 
   try { db.run('ALTER TABLE documents ADD COLUMN full_name TEXT NOT NULL DEFAULT \'\''); } catch (e) {}
-  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_docs_applicant_type ON documents(applicant_id, document_type)');
 
   saveDatabase();
   return db;

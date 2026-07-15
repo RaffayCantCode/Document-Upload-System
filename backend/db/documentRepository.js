@@ -21,24 +21,25 @@ function createSqliteRepository() {
   return {
     upsertDocument(id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType) {
       const db = getDb();
-      const existing = queryAll(db, 'SELECT id FROM documents WHERE applicant_id = ? AND document_type = ?', [applicantId, docType]);
-      if (existing.length) {
-        const existingId = existing[0].id;
-        db.run(
-          `UPDATE documents SET file_name = ?, file_data = ?, file_size = ?, mime_type = ?, full_name = ?, uploaded_at = datetime('now'), status = 'pending' WHERE id = ?`,
-          [fileName, fileData, fileSize, mimeType, fullName, existingId]
-        );
-        saveDatabase();
-        return existingId;
-      } else {
-        db.run(
-          `INSERT INTO documents (id, applicant_id, full_name, document_type, file_name, file_data, file_size, mime_type, uploaded_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
-          [id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType]
-        );
-        saveDatabase();
-        return id;
+      if (docType === 'transcript' || docType === 'cnic') {
+        const existing = queryAll(db, 'SELECT id FROM documents WHERE applicant_id = ? AND document_type = ?', [applicantId, docType]);
+        if (existing.length) {
+          const existingId = existing[0].id;
+          db.run(
+            `UPDATE documents SET file_name = ?, file_data = ?, file_size = ?, mime_type = ?, full_name = ?, uploaded_at = datetime('now'), status = 'pending' WHERE id = ?`,
+            [fileName, fileData, fileSize, mimeType, fullName, existingId]
+          );
+          saveDatabase();
+          return existingId;
+        }
       }
+      db.run(
+        `INSERT INTO documents (id, applicant_id, full_name, document_type, file_name, file_data, file_size, mime_type, uploaded_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        [id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType]
+      );
+      saveDatabase();
+      return id;
     },
 
     findDocuments(applicantId) {

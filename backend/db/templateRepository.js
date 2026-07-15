@@ -15,8 +15,8 @@ function createMyRepository() {
 
     /**
      * Insert or update a document for this applicant + document_type.
-     * If a row with same (applicant_id, document_type) exists, update it.
-     * Otherwise insert a new row.
+     * For transcript/cnic: if a row exists, update it (upsert). Only 1 per applicant.
+     * For photo: always insert a new row (multiple photos allowed).
      * @param {string} id          — UUID (only used for new inserts)
      * @param {string} applicantId — e.g. "STU-001"
      * @param {string} fullName    — applicant's full name
@@ -25,11 +25,11 @@ function createMyRepository() {
      * @param {Buffer} fileData    — raw file bytes (BLOB)
      * @param {number} fileSize    — file size in bytes
      * @param {string} mimeType    — e.g. "application/pdf", "image/png"
-     * @returns {string} the id of the upserted document (existing or new)
+     * @returns {string} the id of the upserted/inserted document
      */
     async upsertDocument(id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType) {
-      // TODO: INSERT … ON CONFLICT (applicant_id, document_type) DO UPDATE …
-      //       RETURNING id
+      // TODO: if (docType === 'transcript' || docType === 'cnic') check existing;
+      //       if exists UPDATE and return its id, else INSERT new
       return id;
     },
 

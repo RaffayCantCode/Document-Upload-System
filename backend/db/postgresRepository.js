@@ -19,7 +19,6 @@ function createPostgresRepository(connectionString) {
       )
     `);
     try { await pool.query(`ALTER TABLE documents ADD COLUMN full_name TEXT NOT NULL DEFAULT ''`); } catch (e) {}
-    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_docs_applicant_type ON documents(applicant_id, document_type)`);
   }
 
   return {
@@ -27,15 +26,23 @@ function createPostgresRepository(connectionString) {
     ensureTable,
 
     async upsertDocument(id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType) {
-      const result = await pool.query(
+      if (docType === 'transcript' || docType === 'cnic') {
+        const existing = await pool.query('SELECT id FROM documents WHERE applicant_id = $1 AND document_type = $2', [applicantId, docType]);
+        if (existing.rows.length) {
+          const existingId = existing.rows[0].id;
+          await pool.query(
+            `UPDATE documents SET file_name = $1, file_data = $2, file_size = $3, mime_type = $4, full_name = $5, uploaded_at = NOW(), status = 'pending' WHERE id = $6`,
+            [fileName, fileData, fileSize, mimeType, fullName, existingId]
+          );
+          return existingId;
+        }
+      }
+      await pool.query(
         `INSERT INTO documents (id, applicant_id, full_name, document_type, file_name, file_data, file_size, mime_type, uploaded_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-         ON CONFLICT (applicant_id, document_type) DO UPDATE
-           SET file_name = $5, file_data = $6, file_size = $7, mime_type = $8, full_name = $3, uploaded_at = NOW(), status = 'pending'
-         RETURNING id`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
         [id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType]
       );
-      return result.rows[0].id;
+      return id;
     },
 
     async findDocuments(applicantId) {
