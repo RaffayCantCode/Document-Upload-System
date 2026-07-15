@@ -36,15 +36,19 @@ function createPostgresRepository(connectionString) {
     await pool.query("ALTER TABLE applicants ADD COLUMN IF NOT EXISTS photo_file_size INTEGER");
     await pool.query("ALTER TABLE applicants ADD COLUMN IF NOT EXISTS photo_mime_type TEXT");
     await pool.query("ALTER TABLE applicants ADD COLUMN IF NOT EXISTS photo_uploaded_at TIMESTAMP");
-    await pool.query(`
-      UPDATE applicants SET status = 
-        CASE 
-          WHEN transcript_status = 'rejected' OR cnic_status = 'rejected' THEN 'rejected'
-          WHEN transcript_status = 'verified' AND cnic_status = 'verified' THEN 'verified'
-          ELSE 'pending'
-        END
-      WHERE (transcript_status IS NOT NULL OR cnic_status IS NOT NULL)
-    `);
+    try {
+      await pool.query(`
+        UPDATE applicants SET status = 
+          CASE 
+            WHEN transcript_status = 'rejected' OR cnic_status = 'rejected' THEN 'rejected'
+            WHEN transcript_status = 'verified' AND cnic_status = 'verified' THEN 'verified'
+            ELSE 'pending'
+          END
+        WHERE (transcript_status IS NOT NULL OR cnic_status IS NOT NULL)
+      `);
+    } catch (e) {
+      // Columns might have already been dropped, ignore error.
+    }
     await pool.query('ALTER TABLE applicants DROP COLUMN IF EXISTS transcript_status');
     await pool.query('ALTER TABLE applicants DROP COLUMN IF EXISTS cnic_status');
     try {
@@ -139,6 +143,12 @@ function createPostgresRepository(connectionString) {
         const fields = [t + '_file_name', t + '_file_data', t + '_file_size', t + '_mime_type', t + '_uploaded_at'];
         await pool.query(
           `UPDATE applicants SET ${fields.map(f => f + '=NULL').join(',')}, updated_at=NOW() WHERE applicant_id=$1`,
+          [appId]
+        );
+        
+        // Clean up the row if no documents are left
+        await pool.query(
+          `DELETE FROM applicants WHERE applicant_id=$1 AND transcript_file_name IS NULL AND cnic_file_name IS NULL AND photo_file_name IS NULL`,
           [appId]
         );
       }

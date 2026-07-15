@@ -89,6 +89,7 @@ function createSqliteRepository() {
         const appId = parts.slice(1).join(':');
         const fields = [t + '_file_name', t + '_file_data', t + '_file_size', t + '_mime_type', t + '_uploaded_at'];
         db.run(`UPDATE applicants SET ${fields.map(f => f + '=NULL').join(',')}, updated_at=datetime('now') WHERE applicant_id=?`, [appId]);
+        db.run(`DELETE FROM applicants WHERE applicant_id=? AND transcript_file_name IS NULL AND cnic_file_name IS NULL AND photo_file_name IS NULL`, [appId]);
       }
       saveDatabase();
     },
