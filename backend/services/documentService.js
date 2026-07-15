@@ -1,4 +1,3 @@
-const { v4: uuidv4 } = require('uuid');
 const config = require('../config/index');
 
 function createDocumentService(repo) {
@@ -16,8 +15,15 @@ function createDocumentService(repo) {
       );
     }
 
-    const id = uuidv4();
-    const docId = await repo.upsertDocument(id, applicantId, fullName || '', docType, file.originalname, file.buffer, file.size, file.mimetype);
+    const existing = await repo.findDocuments(applicantId);
+    if (existing.some(d => d.document_type === docType && d.file_name)) {
+      throw Object.assign(
+        new Error(`You have already submitted a ${docType}. Delete the existing one first to upload a new one.`),
+        { status: 409 }
+      );
+    }
+
+    const docId = await repo.upsertDocument('', applicantId, fullName || '', docType, file.originalname, file.buffer, file.size, file.mimetype);
 
     return { id: docId, applicant_id: applicantId, full_name: fullName || '', document_type: docType, file_name: file.originalname, file_size: file.size, mime_type: file.mimetype };
   }

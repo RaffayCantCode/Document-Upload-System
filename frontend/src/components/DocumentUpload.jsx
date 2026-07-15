@@ -1,10 +1,12 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 const DEFAULT_DOC_TYPES = [
   { value: 'transcript', label: 'Transcript' },
   { value: 'cnic', label: 'CNIC' },
   { value: 'photo', label: 'Photo' },
 ];
+
+const ALL_DOC_VALUES = DEFAULT_DOC_TYPES.map((t) => t.value);
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -118,6 +120,7 @@ function PreUploadPreview({ file, onClose }) {
 export default function DocumentUpload({
   apiClient,
   applicantId,
+  uploadedDocTypes = [],
   documentTypes = DEFAULT_DOC_TYPES,
   maxFileSizeMB = 1,
   allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'],
@@ -125,8 +128,11 @@ export default function DocumentUpload({
   onUploadError,
   className = '',
 }) {
+  const availableDocTypes = documentTypes;
+  const allSubmitted = false;
+
   const [fullName, setFullName] = useState('');
-  const [docType, setDocType] = useState(documentTypes[0]?.value || 'transcript');
+  const [docType, setDocType] = useState(availableDocTypes[0]?.value || 'transcript');
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -134,6 +140,7 @@ export default function DocumentUpload({
   const [success, setSuccess] = useState('');
   const [previewFile, setPreviewFile] = useState(null);
   const fileInputRef = useRef(null);
+
 
   const validateFile = (f) => {
     const ext = f.name.split('.').pop().toLowerCase();
@@ -203,99 +210,114 @@ export default function DocumentUpload({
 
   return (
     <div className={`doc-upload-module ${className}`}>
-      {error && (
-        <div className="doc-alert doc-alert-error">
-          <span className="doc-alert-icon"><XIcon /></span>
-          <span>{error}</span>
+      {allSubmitted ? (
+        <div className="doc-all-submitted">
+          <div className="doc-all-submitted-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#86efac" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <h3>All documents submitted</h3>
+          <p>Transcript, CNIC, and Photo have all been uploaded. Delete a document below to upload a replacement.</p>
         </div>
-      )}
-      {success && (
-        <div className="doc-alert doc-alert-success">
-          <span className="doc-alert-icon"><CheckIcon /></span>
-          <span>{success}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <div className="doc-form-row">
-          <label className="doc-label">
-            Full Name
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. John Doe" className="doc-input" />
-          </label>
-        </div>
-        <div className="doc-form-row">
-          <label className="doc-label">
-            Document Type
-            <select value={docType} onChange={(e) => setDocType(e.target.value)} className="doc-select">
-              {documentTypes.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div
-          className={`doc-dropzone ${dragOver ? 'doc-dropzone-active' : ''}`}
-          onDrop={handleDrop}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onClick={() => !file && fileInputRef.current?.click()}
-        >
-          {file ? (
-            <div className="doc-file-selected">
-              <span className="doc-file-icon"><FileIcon /></span>
-              <div className="doc-file-info">
-                <span className="doc-file-name">{file.name}</span>
-                <span className="doc-file-size">{formatSize(file.size)}</span>
-              </div>
-              <button
-                type="button"
-                className="doc-btn doc-btn-sm doc-btn-preview"
-                onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }}
-                title="Preview file"
-              >
-                <EyeIcon /> Preview
-              </button>
-              <button
-                type="button"
-                className="doc-btn doc-btn-sm doc-btn-remove"
-                onClick={(e) => { e.stopPropagation(); setFile(null); setError(''); }}
-                title="Remove file"
-              >
-                <XIcon /> Remove
-              </button>
-            </div>
-          ) : (
-            <div className="doc-drop-text">
-              <div className="doc-drop-icon"><UploadIcon /></div>
-              <p>Drag & drop your file here, or click to browse</p>
-              <small>Allowed: {allowedExtensions.join(', ').toUpperCase()} — Max {maxFileSizeMB}MB</small>
-              <div className="doc-dropzone-size">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a10 10 0 1 0 10 10h-10V2z" />
-                  <path d="M12 12 9.5 9.5" />
-                  <path d="M12 7.5V12" />
-                </svg>
-                Most transcripts, CNICs, and photos are under 500KB — 1MB limit is generous
-              </div>
+      ) : (
+        <>
+          {error && (
+            <div className="doc-alert doc-alert-error">
+              <span className="doc-alert-icon"><XIcon /></span>
+              <span>{error}</span>
             </div>
           )}
-          <input ref={fileInputRef} type="file" onChange={handleChange} hidden accept=".pdf,.png,.jpg,.jpeg" />
-        </div>
+          {success && (
+            <div className="doc-alert doc-alert-success">
+              <span className="doc-alert-icon"><CheckIcon /></span>
+              <span>{success}</span>
+            </div>
+          )}
 
-        {uploading && (
-          <div className="doc-progress-bar">
-            <div className="doc-progress-fill" style={{ width: '60%' }} />
-          </div>
-        )}
+          <form onSubmit={handleSubmit}>
+            <div className="doc-form-row">
+              <label className="doc-label">
+                Full Name
+                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. John Doe" className="doc-input" />
+              </label>
+            </div>
+            <div className="doc-form-row">
+              <label className="doc-label">
+                Document Type
+                <select value={docType} onChange={(e) => setDocType(e.target.value)} className="doc-select">
+                  {availableDocTypes.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
-        <button type="submit" className="doc-btn doc-btn-primary" disabled={uploading || !file}>
-          {uploading ? 'Uploading...' : 'Upload Document'}
-        </button>
-      </form>
+            <div
+              className={`doc-dropzone ${dragOver ? 'doc-dropzone-active' : ''}`}
+              onDrop={handleDrop}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onClick={() => !file && fileInputRef.current?.click()}
+            >
+              {file ? (
+                <div className="doc-file-selected">
+                  <span className="doc-file-icon"><FileIcon /></span>
+                  <div className="doc-file-info">
+                    <span className="doc-file-name">{file.name}</span>
+                    <span className="doc-file-size">{formatSize(file.size)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="doc-btn doc-btn-sm doc-btn-preview"
+                    onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }}
+                    title="Preview file"
+                  >
+                    <EyeIcon /> Preview
+                  </button>
+                  <button
+                    type="button"
+                    className="doc-btn doc-btn-sm doc-btn-remove"
+                    onClick={(e) => { e.stopPropagation(); setFile(null); setError(''); }}
+                    title="Remove file"
+                  >
+                    <XIcon /> Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="doc-drop-text">
+                  <div className="doc-drop-icon"><UploadIcon /></div>
+                  <p>Drag & drop your file here, or click to browse</p>
+                  <small>Allowed: {allowedExtensions.join(', ').toUpperCase()} — Max {maxFileSizeMB}MB</small>
+                  <div className="doc-dropzone-size">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a10 10 0 1 0 10 10h-10V2z" />
+                      <path d="M12 12 9.5 9.5" />
+                      <path d="M12 7.5V12" />
+                    </svg>
+                    Most transcripts, CNICs, and photos are under 500KB — 1MB limit is generous
+                  </div>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" onChange={handleChange} hidden accept=".pdf,.png,.jpg,.jpeg" />
+            </div>
 
-      {previewFile && (
-        <PreUploadPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+            {uploading && (
+              <div className="doc-progress-bar">
+                <div className="doc-progress-fill" style={{ width: '60%' }} />
+              </div>
+            )}
+
+            <button type="submit" className="doc-btn doc-btn-primary" disabled={uploading || !file}>
+              {uploading ? 'Uploading...' : 'Upload Document'}
+            </button>
+          </form>
+
+          {previewFile && (
+            <PreUploadPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+          )}
+        </>
       )}
     </div>
   );

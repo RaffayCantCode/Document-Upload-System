@@ -18,6 +18,8 @@ export default function App() {
   }, [applicantId]);
   const { documents, loading, error: listError, deleteDocument, refresh } = useDocuments(apiClient, applicantId);
 
+  const uploadedDocTypes = documents.filter((d) => d.file_name).map((d) => d.document_type);
+
   return (
     <div className="doc-container">
       <header className="doc-header">
@@ -50,6 +52,7 @@ export default function App() {
         <DocumentUpload
           apiClient={apiClient}
           applicantId={applicantId}
+          uploadedDocTypes={uploadedDocTypes}
           onUploadSuccess={refresh}
         />
       </section>

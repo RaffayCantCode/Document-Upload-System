@@ -1,14 +1,13 @@
 /**
  * Template Repository — Stub Adapter
  *
- * The system now uses a single-row-per-applicant design:
- *   - applicants table: 1 row per applicant with transcript + cnic columns
- *   - photos table: 1 row per photo (1-to-many with applicant)
+ * Single-row-per-applicant design (no separate photos table):
+ *   - applicants table: 1 row per applicant with transcript + cnic + photo columns
  *
- * Document IDs for API:
+ * Document IDs for API (all use the same prefix pattern):
  *   - transcript → "transcript:<applicant_id>"
  *   - cnic       → "cnic:<applicant_id>"
- *   - photo      → "<photo_uuid>"
+ *   - photo      → "photo:<applicant_id>"
  *
  * Implement these methods and pass to createModule({ repository: myRepo }).
  */
@@ -17,10 +16,9 @@ function createMyRepository() {
   return {
 
     /**
-     * Upload a document.
-     * For transcript/cnic: upsert into applicants table (set the type's columns).
-     * For photo: insert into photos table.
-     * @param {string} id          — UUID (for photos; ignored for transcript/cnic)
+     * Upload a document. Resets applicant status to 'pending'.
+     * Upserts into applicants table using `${docType}_file_*` columns.
+     * @param {string} id          — ignored (all types use prefix:<applicant_id>)
      * @param {string} applicantId
      * @param {string} fullName
      * @param {string} docType     — "transcript" | "cnic" | "photo"
@@ -28,37 +26,38 @@ function createMyRepository() {
      * @param {Buffer} fileData
      * @param {number} fileSize
      * @param {string} mimeType
-     * @returns {string} document id — "transcript:<id>" | "cnic:<id>" | "<photo-uuid>"
+     * @returns {string} document id — "transcript:<id>" | "cnic:<id>" | "photo:<id>"
      */
     async upsertDocument(id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType) {
-      // TODO
-      return docType === 'photo' ? id : docType + ':' + applicantId;
+      // TODO: INSERT INTO applicants (...) VALUES (...) ON CONFLICT DO UPDATE SET ... status='pending'
+      return docType + ':' + applicantId;
     },
 
     /**
      * List all documents for an applicant.
-     * Return transcript + cnic (from applicants row) + all photos.
+     * Returns transcript, cnic, and photo rows from the single applicants row.
      * @param {string} applicantId
      * @returns {Array<object>} each with: id, applicant_id, full_name, document_type, file_name, file_size, mime_type, uploaded_at, status
      */
     async findDocuments(applicantId) {
-      // TODO: SELECT applicants row + photos WHERE applicant_id = ?
+      // TODO: SELECT applicants row, push for each type where ${t}_file_name IS NOT NULL
       return [];
     },
 
     /**
      * Get a single document's metadata by its composite id.
-     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "<photo-uuid>"
+     * Status comes from applicants.status (one status per applicant).
+     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "photo:<id>"
      * @returns {object|null}
      */
     async findDocumentById(id) {
-      // TODO: parse prefix, look up applicants or photos
+      // TODO: parse prefix, look up applicants row
       return null;
     },
 
     /**
      * Get file data for download.
-     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "<photo-uuid>"
+     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "photo:<id>"
      * @returns {object|null} { file_name, mime_type, file_data(Buffer) }
      */
     async findDocumentFileById(id) {
@@ -67,22 +66,22 @@ function createMyRepository() {
     },
 
     /**
-     * Delete a document.
-     * For transcript/cnic: NULL out those columns in applicants row.
-     * For photo: DELETE from photos table.
-     * @param {string} id
+     * Delete a document by NULLing its columns in the applicants row.
+     * Does NOT change applicant status.
+     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "photo:<id>"
      */
     async deleteDocumentById(id) {
-      // TODO
+      // TODO: parse prefix, NULL out ${prefix}_file_* columns
     },
 
     /**
-     * Update a document's status.
-     * @param {string} id
+     * Update the applicant's status (one status per application, not per document).
+     * For all document types, updates applicants.status.
+     * @param {string} id — "transcript:<id>" | "cnic:<id>" | "photo:<id>"
      * @param {string} status — "pending" | "verified" | "rejected"
      */
     async updateDocumentStatus(id, status) {
-      // TODO
+      // TODO: parse prefix, extract applicant_id, UPDATE applicants SET status = ?
     },
   };
 }

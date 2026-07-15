@@ -63,7 +63,15 @@ module.exports = {
   createModule,
   errorHandler,
   config,
-  initDatabase,
+  initDatabase: async () => {
+    if (config.dbType === 'postgres') {
+      const repo = createPostgresRepository(config.pgConnectionString);
+      if (repo.ensureTable) {
+        await repo.ensureTable();
+      }
+    }
+    await initDatabase();
+  },
   closeDatabase,
   createSqliteRepository,
   createPostgresRepository,
