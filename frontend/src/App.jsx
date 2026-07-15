@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createApiClient } from './api';
 import { useDocuments } from './hooks/useDocuments';
 import DocumentUpload from './components/DocumentUpload';
@@ -6,8 +6,16 @@ import DocumentList from './components/DocumentList';
 
 const apiClient = createApiClient('/api/documents');
 
+function getSavedId() {
+  try { return sessionStorage.getItem('doc_applicant_id') || ''; } catch { return ''; }
+}
+
 export default function App() {
-  const [applicantId, setApplicantId] = useState('');
+  const [applicantId, setApplicantId] = useState(getSavedId);
+
+  useEffect(() => {
+    try { sessionStorage.setItem('doc_applicant_id', applicantId); } catch {}
+  }, [applicantId]);
   const { documents, loading, error: listError, deleteDocument, refresh } = useDocuments(apiClient, applicantId);
 
   return (
