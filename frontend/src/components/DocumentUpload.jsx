@@ -125,6 +125,7 @@ export default function DocumentUpload({
   onUploadError,
   className = '',
 }) {
+  const [fullName, setFullName] = useState('');
   const [docType, setDocType] = useState(documentTypes[0]?.value || 'transcript');
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -177,6 +178,10 @@ export default function DocumentUpload({
       setError('Applicant ID is required');
       return;
     }
+    if (!fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
     if (!file) {
       setError('Please select a file');
       return;
@@ -184,7 +189,7 @@ export default function DocumentUpload({
 
     setUploading(true);
     try {
-      const result = await apiClient.upload(file, applicantId, docType);
+      const result = await apiClient.upload(file, applicantId, fullName, docType);
       setSuccess(`${result.document.document_type} uploaded successfully`);
       setFile(null);
       if (onUploadSuccess) onUploadSuccess(result.document);
@@ -212,6 +217,12 @@ export default function DocumentUpload({
       )}
 
       <form onSubmit={handleSubmit}>
+        <div className="doc-form-row">
+          <label className="doc-label">
+            Full Name
+            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. John Doe" className="doc-input" />
+          </label>
+        </div>
         <div className="doc-form-row">
           <label className="doc-label">
             Document Type

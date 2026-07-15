@@ -8,6 +8,7 @@ function createPostgresRepository(connectionString) {
       CREATE TABLE IF NOT EXISTS documents (
         id            TEXT PRIMARY KEY,
         applicant_id  TEXT NOT NULL,
+        full_name     TEXT NOT NULL DEFAULT '',
         document_type TEXT NOT NULL CHECK(document_type IN ('transcript','cnic','photo')),
         file_name     TEXT NOT NULL,
         file_data     BYTEA,
@@ -17,22 +18,28 @@ function createPostgresRepository(connectionString) {
         status        TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','verified','rejected'))
       )
     `);
+    try { await pool.query(`ALTER TABLE documents ADD COLUMN full_name TEXT NOT NULL DEFAULT ''`); } catch (e) {}
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_docs_applicant_type ON documents(applicant_id, document_type)`);
   }
 
   return {
     pool,
     ensureTable,
 
-    async insertDocument(id, applicantId, docType, fileName, fileData, fileSize, mimeType) {
-      await pool.query(
-        `INSERT INTO documents (id, applicant_id, document_type, file_name, file_data, file_size, mime_type, uploaded_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-        [id, applicantId, docType, fileName, fileData, fileSize, mimeType]
+    async upsertDocument(id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType) {
+      const result = await pool.query(
+        `INSERT INTO documents (id, applicant_id, full_name, document_type, file_name, file_data, file_size, mime_type, uploaded_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+         ON CONFLICT (applicant_id, document_type) DO UPDATE
+           SET file_name = $5, file_data = $6, file_size = $7, mime_type = $8, full_name = $3, uploaded_at = NOW(), status = 'pending'
+         RETURNING id`,
+        [id, applicantId, fullName, docType, fileName, fileData, fileSize, mimeType]
       );
+      return result.rows[0].id;
     },
 
     async findDocuments(applicantId) {
-      let sql = 'SELECT id, applicant_id, document_type, file_name, file_size, mime_type, uploaded_at, status FROM documents';
+      let sql = 'SELECT id, applicant_id, full_name, document_type, file_name, file_size, mime_type, uploaded_at, status FROM documents';
       const params = [];
       if (applicantId) {
         sql += ' WHERE applicant_id = $1';
@@ -45,7 +52,7 @@ function createPostgresRepository(connectionString) {
 
     async findDocumentById(id) {
       const result = await pool.query(
-        'SELECT id, applicant_id, document_type, file_name, file_size, mime_type, uploaded_at, status FROM documents WHERE id = $1',
+        'SELECT id, applicant_id, full_name, document_type, file_name, file_size, mime_type, uploaded_at, status FROM documents WHERE id = $1',
         [id]
       );
       return result.rows.length ? result.rows[0] : null;

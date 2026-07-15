@@ -18,6 +18,7 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS documents (
       id            TEXT PRIMARY KEY,
       applicant_id  TEXT NOT NULL,
+      full_name     TEXT NOT NULL DEFAULT '',
       document_type TEXT NOT NULL CHECK(document_type IN ('transcript','cnic','photo')),
       file_name     TEXT NOT NULL,
       file_data     BLOB,
@@ -27,6 +28,9 @@ async function initDatabase() {
       status        TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','verified','rejected'))
     )
   `);
+
+  try { db.run('ALTER TABLE documents ADD COLUMN full_name TEXT NOT NULL DEFAULT \'\''); } catch (e) {}
+  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_docs_applicant_type ON documents(applicant_id, document_type)');
 
   saveDatabase();
   return db;

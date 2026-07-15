@@ -1,10 +1,11 @@
 export function createApiClient(baseUrl = '/api/documents') {
   const api = baseUrl.replace(/\/+$/, '');
 
-  async function upload(file, applicantId, documentType) {
+  async function upload(file, applicantId, fullName, documentType) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('applicant_id', applicantId);
+    formData.append('full_name', fullName);
     formData.append('document_type', documentType);
 
     const res = await fetch(`${api}/upload`, { method: 'POST', body: formData });

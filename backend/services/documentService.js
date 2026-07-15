@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const config = require('../config/index');
 
 function createDocumentService(repo) {
-  async function uploadDocument(file, applicantId, docType) {
+  async function uploadDocument(file, applicantId, fullName, docType) {
     if (!file) {
       throw Object.assign(new Error('No file provided'), { status: 400 });
     }
@@ -17,9 +17,9 @@ function createDocumentService(repo) {
     }
 
     const id = uuidv4();
-    await repo.insertDocument(id, applicantId, docType, file.originalname, file.buffer, file.size, file.mimetype);
+    const docId = await repo.upsertDocument(id, applicantId, fullName || '', docType, file.originalname, file.buffer, file.size, file.mimetype);
 
-    return { id, applicant_id: applicantId, document_type: docType, file_name: file.originalname, file_size: file.size, mime_type: file.mimetype };
+    return { id: docId, applicant_id: applicantId, full_name: fullName || '', document_type: docType, file_name: file.originalname, file_size: file.size, mime_type: file.mimetype };
   }
 
   async function listDocuments(applicantId) {

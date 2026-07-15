@@ -6,7 +6,7 @@ function createDocumentController(service) {
   }
 
   const upload = asyncHandler(async (req, res) => {
-    const doc = await service.uploadDocument(req.file, req.body.applicant_id, req.body.document_type);
+    const doc = await service.uploadDocument(req.file, req.body.applicant_id, req.body.full_name, req.body.document_type);
     res.status(201).json({ message: 'File uploaded successfully', document: doc });
   });
 
