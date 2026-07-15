@@ -6,318 +6,117 @@
 <style>
 body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1a1a2e; line-height: 1.6; }
 h1 { color: #4f46e5; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; }
-h2 { color: #3730a3; margin-top: 30px; }
+h2 { color: #3730a3; margin-top: 28px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
 h3 { color: #4338ca; }
 code { background: #f0f0f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-pre { background: #1a1a2e; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+pre { background: #1a1a2e; color: #e2e8f0; padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
 th { background: #f0f0f5; font-weight: 600; }
 ul, ol { padding-left: 20px; }
-hr { border: none; border-top: 1px solid #e2e8f0; margin: 30px 0; }
+hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
 </style>
 </head>
 <body>
-<p style="text-align:right; color:#6b7280; font-size:0.9em;">Developer: Muhammad Raffay Asif</p>
-
+<p style="text-align:right; color:#6b7280;">Developer: Muhammad Raffay Asif</p>
 <h1>Document Upload System</h1>
-<p><strong>Project:</strong> University Admissions Portal — SafeX Solutions<br>
-<strong>Developer:</strong> Muhammad Raffay Asif<br>
-<strong>Stack:</strong> React 19 + Express.js + SQLite/PostgreSQL (pluggable database)</p>
+<p><strong>University Admissions Portal — SafeX Solutions</strong><br>
+Stack: React 19 + Express.js + SQLite/PostgreSQL (pluggable database)</p>
 
-<hr>
+<h2>1. What It Does</h2>
+<p>University applicants upload transcripts, CNIC, and photos for admission. Files are validated (type + size) and stored as BLOBs directly in the database — no file system needed. Administrators can review and mark documents as verified or rejected.</p>
 
-<h2>Table of Contents</h2>
+<h2>2. How to Run</h2>
+<p>Both servers must run simultaneously:</p>
 <ol>
-  <li><a href="#how-it-was-made">How It Was Made</a></li>
-  <li><a href="#architecture">Architecture Deep Dive</a></li>
-  <li><a href="#backend-layers">Backend Layers Explained</a></li>
-  <li><a href="#frontend-components">Frontend Components Explained</a></li>
-  <li><a href="#database-design">Database Design &amp; Why BLOBs</a></li>
-  <li><a href="#pluggable-db">Pluggable Database System</a></li>
-  <li><a href="#how-to-run">How to Run</a></li>
-  <li><a href="#api-reference">API Reference</a></li>
-  <li><a href="#integration">How to Integrate Into Your Site</a></li>
-  <li><a href="#challenges">Challenges Faced</a></li>
-  <li><a href="#tech">Technologies Used</a></li>
+  <li><code>cd backend && npm install && npm start</code> → port 5000</li>
+  <li><code>cd frontend && npm install && npm run dev</code> → port 3000</li>
+  <li>Open <code>http://localhost:3000</code>, enter an Applicant ID, upload a file</li>
 </ol>
+<p>Or double-click <code>start.bat</code> to open both terminals automatically.</p>
 
-<hr>
-
-<h2 id="how-it-was-made">1. How It Was Made</h2>
-
-<p>This project was built for a university admissions portal where applicants need to upload supporting documents — transcripts, CNIC, and passport photos — as part of their application. The requirements were straightforward: drag-and-drop uploads, file type/size validation, status tracking for administrators, and file preview before and after upload.</p>
-
-<p>The development process went through several iterations:</p>
-
-<h3>Phase 1 — Core Backend</h3>
-<p>I started with the Express backend using a layered architecture: routes → controllers → services → repository. The repository initially used sql.js, a pure JavaScript port of SQLite compiled via Emscripten. This was chosen because it doesn't require any native compilation tools — no Python, no C++ compiler — just npm install and it works on any machine. Files are stored as BLOBs directly in the database rather than on the file system, which simplifies deployment (no shared file storage needed).</p>
-
-<h3>Phase 2 — Frontend Widgets</h3>
-<p>The React frontend was built as a set of reusable widgets (<code>DocumentUpload</code>, <code>DocumentList</code>) with scoped CSS (all classes prefixed <code>doc-*</code>). This was intentional: the widgets can be dropped into any existing university portal without breaking existing styles. The dark gradient theme with glassmorphism cards was a design choice to make the demo look polished.</p>
-
-<h3>Phase 3 — Pluggable Database</h3>
-<p>Originally the backend was hard-coded to use sql.js. I realized that real universities already have PostgreSQL databases, so I restructured the entire backend to use dependency injection: the repository is a factory function, the service accepts it as a parameter, and the module factory wires everything together. Now anyone can swap in PostgreSQL, MySQL, MongoDB, or any other database by passing a custom repository object.</p>
-
-<h3>Phase 4 — PostgreSQL &amp; Fixes</h3>
-<p>I connected the system to a live Supabase PostgreSQL instance. This uncovered several bugs: the service and controller methods were synchronous (worked with sql.js's sync API but broke with PostgreSQL's async <code>pg</code> library), and the <code>.env</code> file was never actually loaded (no <code>dotenv</code>). Both were fixed. A CSS overlay bug was also found — the dropzone's <code>::before</code> pseudo-element was eating click events on the Preview and Remove buttons because it lacked <code>pointer-events: none</code>.</p>
-
-<hr>
-
-<h2 id="architecture">2. Architecture Deep Dive</h2>
-
-<p>The system follows a strict <strong>layered architecture</strong> where each layer only talks to the one directly below it. This makes the system testable, maintainable, and swappable.</p>
-
-<pre>
-┌─────────────┐     ┌──────────────────────────────────────────────┐
-│  Frontend   │     │  React 19 + Vite                             │
-│  (port 3000) │     │  DocumentUpload, DocumentList, useDocuments  │
-└──────┬──────┘     └──────────────────────────────────────────────┘
-       │  HTTP (fetch)
-       ▼
-┌─────────────┐     ┌──────────────────────────────────────────────┐
-│  Backend    │     │  Express.js                                  │
-│  (port 5000) │     │                                              │
-│             │     │  Router → Controller → Service → Repository  │
-└──────┬──────┘     └──────────────────────────────────────────────┘
-       │  SQL queries
-       ▼
-┌─────────────┐     ┌──────────────────────────────────────────────┐
-│  Database   │     │  SQLite (sql.js) or PostgreSQL (pg)          │
-│             │     │  or any custom adapter                       │
-└─────────────┘     └──────────────────────────────────────────────┘
-</pre>
-
-<p><strong>Key design rule:</strong> The service layer never touches Express or HTTP. It only calls repository methods and returns plain objects. The controller is the only layer that interacts with <code>req</code> and <code>res</code>. This means you can test the service logic without a running server.</p>
-
-<hr>
-
-<h2 id="backend-layers">3. Backend Layers Explained</h2>
-
-<h3>Config (<code>backend/config/index.js</code>)</h3>
-<p>Reads environment variables and provides a single <code>config</code> object used by every other layer. <code>DB_TYPE</code> determines which database adapter to use. <code>maxFileSizeMB</code> controls the upload limit. <code>allowedMimeTypes</code> defines which file formats are accepted (PDF, PNG, JPG).</p>
-
-<h3>Database Init (<code>backend/config/db.js</code>)</h3>
-<p>Initializes the sql.js database engine, creates the <code>documents</code> table if it doesn't exist, and provides <code>getDb()</code>/<code>saveDatabase()</code> helpers. The <code>saveDatabase()</code> function is critical — sql.js is an in-memory database, so every write must explicitly export the buffer to disk or data is lost on restart.</p>
-
-<h3>Middleware (<code>backend/middleware/upload.js</code>)</h3>
-<p>Uses Multer with memoryStorage to handle file uploads. The file is stored in <code>req.file.buffer</code> as a byte array. Memory storage was chosen over disk storage because the body fields (<code>applicant_id</code>) weren't available in Multer's <code>destination</code> callback — they're parsed after the file stream starts.</p>
-
-<h3>Routes (<code>backend/routes/documents.js</code>)</h3>
-<p>Maps HTTP methods and paths to controller functions. Six endpoints: upload, list, get metadata, download, delete, update status. No logic here, just wiring.</p>
-
-<h3>Controllers (<code>backend/controllers/documentController.js</code>)</h3>
-<p>Extracts data from the request (<code>req.params</code>, <code>req.query</code>, <code>req.body</code>, <code>req.file</code>), calls the service, and sends the response. Uses an <code>asyncHandler</code> wrapper to catch promise rejections and forward them to the error middleware.</p>
-
-<h3>Services (<code>backend/services/documentService.js</code>)</h3>
-<p>Contains all business logic: validates file existence, checks document type against allowed list, generates UUIDs for document IDs, ensures status transitions are valid. Every method is <code>async</code> and <code>await</code>s all repository calls — this is essential for PostgreSQL compatibility.</p>
-
-<h3>Repository (<code>backend/db/documentRepository.js</code>)</h3>
-<p>The database adapter. The default implementation uses sql.js with raw SQL queries. Returns plain objects. The PostgreSQL equivalent (<code>backend/db/postgresRepository.js</code>) uses the <code>pg</code> package with connection pooling. A template (<code>backend/db/templateRepository.js</code>) is provided for custom databases.</p>
-
-<h3>Module Factory (<code>backend/index.js</code>)</h3>
-<p>The entry point for integrators. <code>createModule({ repository })</code> wires together the service, controller, and routes. If no repository is provided, it auto-selects based on <code>config.dbType</code>. This is the "pluggable" part — swap the database by passing a different repository object.</p>
-
-<hr>
-
-<h2 id="frontend-components">4. Frontend Components Explained</h2>
-
-<h3>DocumentUpload (<code>frontend/src/components/DocumentUpload.jsx</code>)</h3>
-<p>A form widget with three parts:</p>
+<h2>3. Architecture</h2>
+<p>The backend uses a strict layered architecture:</p>
+<pre>Router → Controller → Service → Repository → Database</pre>
+<p><strong>Router</strong> — maps URLs to controller functions. No logic.<br>
+<strong>Controller</strong> — extracts data from req/res, calls service, sends response.<br>
+<strong>Service</strong> — business logic: validates file type, size, document type; generates UUIDs. Never touches Express.<br>
+<strong>Repository</strong> — database queries. swappable — SQLite, PostgreSQL, or any custom adapter.<br>
+<strong>Module Factory (index.js)</strong> — wires everything together. <code>createModule({ repository })</code> accepts any database adapter.</p>
+<p>The frontend has three reusable widgets:</p>
 <ul>
-  <li><strong>Document type selector</strong> — dropdown for transcript, CNIC, or photo</li>
-  <li><strong>Dropzone</strong> — supports drag-and-drop and click-to-browse. When a file is selected, it shows the file name, size, and two buttons: Preview (opens a modal with <code>URL.createObjectURL</code>) and Remove (clears the selection)</li>
-  <li><strong>Submit button</strong> — uploads the file via <code>fetch()</code> to the backend, shows a shimmer progress bar during upload</li>
+  <li><strong>DocumentUpload</strong> — dropzone with drag-and-drop, type selector, pre-upload preview, remove button</li>
+  <li><strong>DocumentList</strong> — table with status badges, filter, preview modal, download, delete</li>
+  <li><strong>useDocuments</strong> — React hook managing document CRUD state</li>
 </ul>
+<p>All CSS is prefixed with <code>doc-*</code> to avoid conflicts when embedded in existing portals.</p>
 
-<h3>DocumentList (<code>frontend/src/components/DocumentList.jsx</code>)</h3>
-<p>A table widget that displays uploaded documents with columns: type (badge), file name (clickable for preview), size, upload date, status badge (pending/verified/rejected), and actions (Preview, Download, Delete). Includes a filter dropdown and loading/empty states.</p>
-
-<h3>PreUploadPreview (<code>frontend/src/components/DocumentUpload.jsx</code>)</h3>
-<p>A modal that shows a preview of the selected file before uploading. Images display inline using <code>URL.createObjectURL()</code>. PDFs show a message that preview is only available after upload (browsers can't reliably preview local PDF blob URLs).</p>
-
-<h3>PostUploadPreview (<code>frontend/src/components/DocumentList.jsx</code>)</h3>
-<p>A modal that shows the file fetched from the database. Images display inline via the download endpoint URL. PDFs offer an "Open in new tab" link. A Download button is always available.</p>
-
-<h3>useDocuments Hook (<code>frontend/src/hooks/useDocuments.js</code>)</h3>
-<p>A React hook that encapsulates document state management: fetching the list when <code>applicantId</code> changes, deleting documents with optimistic UI updates, and exposing loading/error states.</p>
-
-<h3>API Client (<code>frontend/src/api.js</code>)</h3>
-<p>A factory function <code>createApiClient(baseUrl)</code> that returns an object with methods: <code>upload</code>, <code>list</code>, <code>get</code>, <code>remove</code>, <code>updateStatus</code>, and <code>getDownloadUrl</code>. Each method handles JSON parsing and error checking.</p>
-
-<h3>State Persistence (<code>frontend/src/App.jsx</code>)</h3>
-<p>The applicant ID is saved to <code>sessionStorage</code> whenever it changes. If the page reloads (Vite HMR, browser refresh, tab switch), the ID is restored and documents are fetched again automatically.</p>
-
-<hr>
-
-<h2 id="database-design">5. Database Design &amp; Why BLOBs</h2>
-
-<p>The <code>documents</code> table schema:</p>
-
-<pre>
-Column          | Type      | Notes
-----------------|-----------|-----------------------------------
-id              | TEXT (PK) | UUID generated by the service
-applicant_id    | TEXT      | e.g. "APP-2024-001"
-document_type   | TEXT      | transcript | cnic | photo
-file_name       | TEXT      | Original filename
-file_data       | BLOB      | The actual file bytes
-file_size       | INTEGER   | Bytes
-mime_type       | TEXT      | application/pdf | image/png | image/jpeg
-uploaded_at     | TIMESTAMP | Auto-set
-status          | TEXT      | pending | verified | rejected (default: pending)
-</pre>
-
-<p><strong>Why BLOBs instead of file system?</strong> In a university admissions system with multiple backend servers behind a load balancer, storing files on the local disk doesn't work — the file might be on server A but the next request goes to server B. A shared NAS adds complexity. BLOBs in the database solve this: any server can serve any file, backups include everything, and there's no file system permission issues. The trade-off is database size, but for documents (PDFs, images at ~500KB each) it's negligible for any modern database.</p>
-
-<hr>
-
-<h2 id="pluggable-db">6. Pluggable Database System</h2>
-
-<p>The module accepts any object that implements six methods:</p>
-
-<pre>{
-  insertDocument(id, applicantId, docType, fileName, fileData, fileSize, mimeType),
-  findDocuments(applicantId),
-  findDocumentById(id),
-  findDocumentFileById(id),
-  deleteDocumentById(id),
-  updateDocumentStatus(id, status)
-}</pre>
-
-<p>Three adapters are provided out of the box:</p>
-
-<h3>SQLite (<code>backend/db/documentRepository.js</code>)</h3>
-<p>Uses sql.js — a pure JavaScript SQLite compiled via Emscripten. Synchronous API, zero dependencies, works everywhere. Data is stored in a single <code>database.sqlite</code> file. Every write must call <code>saveDatabase()</code> to persist the in-memory database to disk.</p>
-
-<h3>PostgreSQL (<code>backend/db/postgresRepository.js</code>)</h3>
-<p>Uses the <code>pg</code> package with connection pooling. All methods are async. Switch by setting <code>DB_TYPE=postgres</code> and <code>PG_CONNECTION_STRING</code> in <code>.env</code>. The table is auto-created via <code>ensureTable()</code>.</p>
-
-<h3>Template (<code>backend/db/templateRepository.js</code>)</h3>
-<p>Empty stubs with JSDoc comments. Copy this file and implement each method for MongoDB, MySQL, Firestore, or any other database.</p>
-
-<hr>
-
-<h2 id="how-to-run">7. How to Run</h2>
-
-<p><strong>Both servers must run simultaneously.</strong> The frontend on port 3000 sends API calls to the backend on port 5000.</p>
-
-<h3>Option A — Double-click <code>start.bat</code></h3>
-<p>Opens two terminals automatically: one for the backend, one for the frontend.</p>
-
-<h3>Option B — Manual</h3>
-<ol>
-  <li><code>cd backend && npm install && npm start</code> → Backend on <code>http://localhost:5000</code></li>
-  <li><code>cd frontend && npm install && npm run dev</code> → Frontend on <code>http://localhost:3000</code></li>
-  <li>Open <code>http://localhost:3000</code>, enter an Applicant ID, select a file, upload</li>
-</ol>
-
-<h3>Environment Variables (<code>backend/.env</code>)</h3>
-<pre>
-PORT=5000
-MAX_FILE_SIZE_MB=1
-DB_TYPE=postgres
-PG_CONNECTION_STRING=postgresql://user:pass@host:5432/db
-</pre>
-
-<hr>
-
-<h2 id="api-reference">8. API Reference</h2>
-
+<h2>4. API</h2>
 <table>
-<tr><th>Method</th><th>Path</th><th>Description</th><th>Request</th><th>Response</th></tr>
-<tr><td>POST</td><td><code>/api/documents/upload</code></td><td>Upload a file</td><td>multipart: file + applicant_id + document_type</td><td><code>{ document: { id, ... } }</code></td></tr>
-<tr><td>GET</td><td><code>/api/documents?applicant_id=X</code></td><td>List documents</td><td>Query param</td><td><code>{ documents: [...] }</code></td></tr>
-<tr><td>GET</td><td><code>/api/documents/:id</code></td><td>Get metadata</td><td>—</td><td><code>{ document: { ... } }</code></td></tr>
-<tr><td>GET</td><td><code>/api/documents/:id/download</code></td><td>Download file</td><td>—</td><td>Binary file (Content-Type from DB)</td></tr>
-<tr><td>DELETE</td><td><code>/api/documents/:id</code></td><td>Delete document</td><td>—</td><td><code>{ message: "..." }</code></td></tr>
-<tr><td>PATCH</td><td><code>/api/documents/:id/status</code></td><td>Update status</td><td>JSON <code>{ status: "verified" }</code></td><td><code>{ message: "..." }</code></td></tr>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+<tr><td>POST</td><td><code>/api/documents/upload</code></td><td>Upload file (multipart: file + applicant_id + document_type)</td></tr>
+<tr><td>GET</td><td><code>/api/documents?applicant_id=X</code></td><td>List documents</td></tr>
+<tr><td>GET</td><td><code>/api/documents/:id</code></td><td>Get metadata</td></tr>
+<tr><td>GET</td><td><code>/api/documents/:id/download</code></td><td>Download file (binary)</td></tr>
+<tr><td>DELETE</td><td><code>/api/documents/:id</code></td><td>Delete document</td></tr>
+<tr><td>PATCH</td><td><code>/api/documents/:id/status</code></td><td>Update status (pending/verified/rejected)</td></tr>
 </table>
 
-<hr>
+<h2>5. Database &amp; Pluggable Adapters</h2>
+<p>The documents table stores: id, applicant_id, document_type, file_name, file_data (BLOB), file_size, mime_type, uploaded_at, status. Files stored as BLOBs so any backend server can serve any file — no shared file system needed.</p>
+<p>Three adapters provided:</p>
+<ul>
+  <li><strong>SQLite</strong> (default via sql.js) — zero config, synchronous API, in-memory with manual <code>saveDatabase()</code> persistence</li>
+  <li><strong>PostgreSQL</strong> (via pg) — connection pooling, async, auto-creates table</li>
+  <li><strong>Template</strong> — empty stubs; copy and implement for MongoDB, MySQL, etc.</li>
+</ul>
+<p>Switch with <code>DB_TYPE=postgres</code> + <code>PG_CONNECTION_STRING</code> in <code>.env</code>, or pass a custom repo: <code>createModule({ repository: myRepo })</code>.</p>
 
-<h2 id="integration">9. How to Integrate Into Your Site</h2>
-
-<h3>Backend</h3>
+<h2>6. Integration</h2>
+<p>Backend (3 lines):</p>
 <pre>const docUpload = require('./backend');
 await docUpload.initDatabase();
-
-// Default: SQLite
 app.use('/api/documents', docUpload.createModule());
-
-// Or PostgreSQL via env:
-// DB_TYPE=postgres PG_CONNECTION_STRING=...
-
-// Or custom database:
-app.use('/api/documents', docUpload.createModule({
-  repository: myCustomRepo
-}));
-
 app.use(docUpload.errorHandler);</pre>
-
-<h3>Frontend</h3>
-<pre>import { DocumentUpload, DocumentList, createApiClient, useDocuments } from './frontend/src/index';
-import './frontend/src/App.css';
-
+<p>Frontend:</p>
+<pre>import { DocumentUpload, DocumentList, createApiClient, useDocuments } from './frontend/src';
 const api = createApiClient('/api/documents');
+&lt;DocumentUpload apiClient={api} applicantId={id} onUploadSuccess={refresh} /&gt;
+&lt;DocumentList documents={docs} onDelete={deleteDocument} getDownloadUrl={api.getDownloadUrl} /&gt;</pre>
 
-function MyPage() {
-  const [applicantId, setApplicantId] = useState('');
-  const { documents, deleteDocument, refresh } = useDocuments(api, applicantId);
-
-  return (
-    &lt;div&gt;
-      &lt;DocumentUpload apiClient={api} applicantId={applicantId} onUploadSuccess={refresh} /&gt;
-      &lt;DocumentList documents={documents} onDelete={deleteDocument} getDownloadUrl={api.getDownloadUrl} /&gt;
-    &lt;/div&gt;
-  );
-}</pre>
-
-<hr>
-
-<h2 id="challenges">10. Challenges Faced</h2>
-
-<h3>1. BLOB Storage with sql.js — Binary Data Quirks</h3>
-<p>sql.js is a JavaScript port of SQLite compiled via Emscripten. Storing files as BLOBs worked for INSERT, but retrieving them was tricky. The standard <code>stmt.getAsObject()</code> returned binary data as a typed array incompatible with Express's <code>res.send()</code>. I had to use <code>stmt.get()</code> and <code>stmt.getColumnNames()</code> manually and wrap the result in <code>Buffer.from()</code>. One wrong type conversion and the downloaded file would be corrupt despite the correct byte count.</p>
-
-<h3>2. Pluggable Database without a DI Framework</h3>
-<p>Restructuring from a monolithic sql.js import to a factory pattern was the hardest architectural decision. The repository, service, and controller all needed to be created via factory functions that accept their dependencies as parameters. Getting the wiring order right in <code>index.js</code> without a dependency injection framework required careful sequencing. The result is clean but was painful to refactor.</p>
-
-<h3>3. sql.js Persistence — Manual Save on Every Write</h3>
-<p>sql.js operates entirely in memory. The database file is only updated when you explicitly call <code>db.export()</code> and write the buffer to disk. If the server crashes between a write and a save, that data is lost forever. Every repository method must call <code>saveDatabase()</code> after execution. This is a fundamental constraint of WASM-compiled databases.</p>
-
-<h3>4. Multer Body Field Timing</h3>
-<p>Multer's diskStorage <code>destination</code> callback fires during file streaming, before non-file form fields are parsed. So <code>req.body.applicant_id</code> was <code>undefined</code> when trying to create the folder path. Switching to memoryStorage and writing the file after Multer finishes solved it, but required extra code to construct the path manually.</p>
-
-<h3>5. Two Preview Flows</h3>
-<p>Pre-upload preview uses <code>URL.createObjectURL(file)</code> from the local File object. Post-upload preview fetches the file from the database via the download endpoint. Both needed the same modal component but with different data sources. Managing <code>revokeObjectURL</code> to prevent memory leaks while letting server URLs cache required careful state management. PDFs added another complication — browsers can't reliably preview local PDF blob URLs.</p>
-
-<h3>6. Dotenv Was Never Loaded</h3>
-<p>The <code>.env</code> file existed but <code>dotenv</code> was never installed or called. <code>process.env.DB_TYPE</code> was always <code>undefined</code>, defaulting to <code>sqlite</code>. The entire PostgreSQL adapter was written but never actually used during testing. All uploads went to the local SQLite file while I was debugging PostgreSQL issues on Supabase. Fixed by installing <code>dotenv</code> and adding <code>require('dotenv').config()</code> to <code>server.js</code>.</p>
-
-<h3>7. CSS Overlay Eating Button Clicks</h3>
-<p>The dropzone's <code>::before</code> pseudo-element had <code>position: absolute; inset: 0</code> but no <code>pointer-events: none</code>. It sat as an invisible overlay on top of the Preview and Remove buttons, intercepting all click events. The button <code>onClick</code> handlers never fired — the <code>::before</code> caught the event and bubbled it to the dropzone, which did nothing because the file was already selected. A one-line CSS fix (<code>pointer-events: none</code>) solved it.</p>
-
-<hr>
-
-<h2 id="tech">11. Technologies Used</h2>
-
+<h2>7. Config (.env)</h2>
 <table>
-<tr><th>Technology</th><th>Purpose</th></tr>
-<tr><td>Node.js / Express</td><td>Backend server and REST API</td></tr>
-<tr><td>React 19 + Vite</td><td>Frontend UI framework and build tool</td></tr>
-<tr><td>SQLite (sql.js)</td><td>Default database — zero-config, in-memory with file persistence</td></tr>
-<tr><td>PostgreSQL (pg)</td><td>Production database via Supabase</td></tr>
-<tr><td>Multer</td><td>File upload middleware with memory storage</td></tr>
-<tr><td>dotenv</td><td>Environment variable loading</td></tr>
-<tr><td>uuid</td><td>Document ID generation</td></tr>
-<tr><td>cors</td><td>Cross-origin request handling</td></tr>
-<tr><td>Git + GitHub</td><td>Version control</td></tr>
+<tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+<tr><td>PORT</td><td>5000</td><td>Server port</td></tr>
+<tr><td>DB_TYPE</td><td>sqlite</td><td>sqlite or postgres</td></tr>
+<tr><td>DB_PATH</td><td>database.sqlite</td><td>SQLite file path</td></tr>
+<tr><td>PG_CONNECTION_STRING</td><td>—</td><td>PostgreSQL connection string</td></tr>
+<tr><td>MAX_FILE_SIZE_MB</td><td>1</td><td>Max upload size</td></tr>
+<tr><td>CORS_ORIGINS</td><td>*</td><td>Allowed origins</td></tr>
 </table>
 
+<h2>8. Challenges</h2>
+<ol>
+  <li><strong>sql.js BLOBs</strong> — retrieving binary data needed manual <code>stmt.get()</code> + <code>Buffer.from()</code> instead of <code>getAsObject()</code>. One wrong type conversion corrupts the download.</li>
+  <li><strong>Pluggable DB without DI</strong> — inverting the dependency chain so any database can be injected required factory functions for repo, service, and controller with careful wiring order.</li>
+  <li><strong>sql.js persistence</strong> — in-memory database means every write must call <code>saveDatabase()</code> or data is lost on crash.</li>
+  <li><strong>Multer timing</strong> — <code>req.body</code> undefined in diskStorage destination callback. Switched to memoryStorage + manual write.</li>
+  <li><strong>CSS overlay</strong> — <code>::before</code> pseudo-element was eating button clicks; fixed with <code>pointer-events: none</code>.</li>
+  <li><strong>Dotenv missing</strong> — <code>.env</code> was never loaded, so <code>DB_TYPE</code> always defaulted to sqlite. Fixed by installing dotenv.</li>
+  <li><strong>Async vs sync</strong> — service/controller methods were synchronous (worked with sql.js but broke PostgreSQL's async pg). Made all methods async/await.</li>
+</ol>
+
+<h2>9. Technologies</h2>
+<table>
+<tr><th>Tool</th><th>Purpose</th></tr>
+<tr><td>Node.js / Express</td><td>Backend API</td></tr>
+<tr><td>React 19 + Vite</td><td>Frontend UI</td></tr>
+<tr><td>SQLite (sql.js)</td><td>Default database</td></tr>
+<tr><td>PostgreSQL (pg)</td><td>Production database</td></tr>
+<tr><td>Multer</td><td>File upload handling</td></tr>
+<tr><td>dotenv</td><td>Environment config</td></tr>
+</table>
 <hr>
-
-<p><em>Documentation written by Muhammad Raffay Asif — Group 21, SafeX Solutions</em></p>
-
+<p><em>Developer: Muhammad Raffay Asif — Group 21, SafeX Solutions</em></p>
 </body>
 </html>

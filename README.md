@@ -1,8 +1,5 @@
 # Document Upload System
 
-**Developer:** Muhammad Raffay Asif  
-**Group 21** — University Admissions Portal (SafeX Solutions)
-
 A pluggable document upload module for university admissions portals.  
 **Stack:** React 19 + Express.js + SQLite/PostgreSQL
 
@@ -142,7 +139,7 @@ frontend/
 - **CSS overlay** — `::before` pseudo-element ate button clicks; fixed with `pointer-events: none`
 - **Dotenv missing** — `.env` was never parsed; installed `dotenv` and called `config()`
 
-Full development story and challenges in [`DOCUMENTATION.doc`](DOCUMENTATION.doc).
+Full development story and challenges in [`DOCUMENTATION.html`]
 
 ---
 
