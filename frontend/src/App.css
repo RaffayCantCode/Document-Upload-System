@@ -196,6 +196,7 @@ body {
   background: radial-gradient(circle at center, rgba(129, 140, 248, 0.06), transparent 70%);
   opacity: 0;
   transition: opacity 0.3s;
+  pointer-events: none;
 }
 
 .doc-dropzone:hover::before,
